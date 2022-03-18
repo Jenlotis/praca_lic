@@ -27,3 +27,9 @@ echo "We will downsaple to $XXX % of the original"
 # MITOfinder looking for mitRNA
 # -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
 mitofinder -j troch_$XXX -1 ./downsampling/Down_pair1_$XXX.fastq.gz -2 ./downsampling/Down_pair2_$XXX.fastq.gz -r ./reference/$REFERENCE -o 5 --override
+
+# NOVOplasty looking for mitRNA
+# all things are in config file
+cd NOVOPlasty/
+perl NOVOPlasty4.3.1.pl -c nowy_config.txt
+
