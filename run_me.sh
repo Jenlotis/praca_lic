@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# for i in 
+# for i in
 echo "What is thread count you want to use: "
 read THREADS
 echo "We will be using $THREADS"
 
 # cleaning data
 # -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
-# fastp -i  -I  -o ./cleanded/Out1.fasta -O ./cleanded/Out2.fasta -V -w $THREADS
+fastp -i ./input/*1.fastq.gz -I ./input/*2.fastq.gz  -o ./cleanded/Out1.fasta -O ./cleanded/Out2.fasta -V -w $THREADS
 
 # chcecking size of the file for downsapling
-#XXX=$( seqkit stats ./cleaned/Out1.fasta -j $THREADS | awk '$1~"./cleaned/Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 7000000/$1*100}' )
+XXX=$( seqkit stats ./cleaned/Out1.fasta -j $THREADS | awk '$1~"./cleaned/Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 7000000/$1*100}' )
 echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
 echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
 read XXX
@@ -26,4 +26,4 @@ echo "We will downsaple to $XXX % of the original"
 
 # MITOfinder looking for mitRNA
 # -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
-mitofinder -j troch_$XXX -1 ./downsampling/Down_pair1_$XXX.fastq.gz -2 ./downsampling/Down_pair2_$XXX.fastq.gz -r ./reference/MF491526.gb -o 5
+mitofinder -j troch_$XXX -1 ./downsampling/Down_pair1_$XXX.fastq.gz -2 ./downsampling/Down_pair2_$XXX.fastq.gz -r ./reference/$REFERENCE -o 5 --override
