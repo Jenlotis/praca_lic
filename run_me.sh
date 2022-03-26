@@ -1,22 +1,44 @@
 #!/bin/bash
 
-# install fastqc/seqkit
-# 
+echo "Which program do you want to use(M/N)"
+read PROGRAM
 
+if [$PROGRAM | tr [:lower:] [:upper:] = M]
+then
+# for i in
+	echo "What is thread count you want to use: "
+	read THREADS
+	echo "We will be using $THREADS"
 
-# for i in 
-#cleaning data
-#-i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
-fastp -i ./in/*.1.fastq.gz -I ./in/*.2.fastq.gz -o ./cleanded/Out1.fasta -O ./cleanded/Out2.fasta -V -w 10
+	# cleaning data
+	# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
+	fastp -i ./input/*1.fastq.gz -I ./input/*2.fastq.gz  -o ./cleanded/Out1.fasta -O ./cleanded/Out2.fasta -V -w $THREADS
 
-#downsampling i packing
-#-s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
-./MITObim-1.9.1/downsample.py -s XXX --interleave -r ./Out1.fasta -r ./Out2.fasta | gzip > ./downsample/XXX_PENT/Downsam_XXX.fastaq.gz
+	# chcecking size of the file for downsapling
+	XXX=$( seqkit stats ./cleaned/Out1.fasta -j $THREADS | awk '$1~"./cleaned/Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 	7000000/$1*100}' )
+	echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
+	echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
+	read XXX
+	echo "We will downsaple to $XXX % of the original"
 
-#deinterlaving file
-#in= input file(interlaved), out1= i out2= out files(seperated paired ends)
-./BBMap_38.95/reformat.sh in=./downsample/XXX_PENT/Downsam_XXX.fastaq.gz out1=./downsample/XXX_PENT/Down_pair1_XXX.fastq.gz out2=./downsample/XXX_PENT/Down_pair2_XXX.fastq.gz 
+	# downsampling i packing
+	# -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
+	./MITObim-1.9.1/misc_scripts/downsample.py -s $XXX --interleave -r ./cleaned/Out1.fasta -r ./cleaned/Out2.fasta | gzip > ./downsampling/Downsam_$XXX.fastaq.gz
 
-#MITOfinder looking for mitRNA
-#-j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
-mitofinder -j troch_XXX -1 ./downsample/XXX_PENT/Down_pair1_XXX.fastq.gz -2 ./downsample/XXX_PENT/Down_pair2_XXX.fastq.gz -r ./reference/MF491526.gb -o 5
+# deinterlaving file
+# in= input file(interlaved), out1= i out2= out files(seperated paired ends)
+	./BBMap_38.95/reformat.sh in=./downsampling/Downsam_$XXX.fastaq.gz out1=./downsampling/Down_pair1_$XXX.fastq.gz out2=./downsampling/Down_pair2_$XXX.fastq.gz 
+
+	# MITOfinder looking for mitRNA
+	# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
+	mitofinder -j troch_$XXX -1 ./downsampling/Down_pair1_$XXX.fastq.gz -2 ./downsampling/Down_pair2_$XXX.fastq.gz -r ./reference/$REFERENCE -o 5 --override
+
+	if [$PROGRAM | tr [:lower:] [:upper:] == M]
+	then
+		# NOVOplasty looking for mitRNA
+		# all things are in config file
+		cd NOVOPlasty/
+		perl NOVOPlasty4.3.1.pl -c nowy_config.txt
+	fi
+else
+	#go back
