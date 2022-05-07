@@ -1,14 +1,16 @@
 #!/bin/bash
+while true; do
 
 echo "Which program do you want to use(M/N)"
 read PROGRAM
+PROGRAM=${PROGRAM^}
 
-if [$PROGRAM | tr [:lower:] [:upper:] = M]
+if [ $PROGRAM = M ];
 then
 # for i in
 	echo "What is thread count you want to use: "
 	read THREADS
-	echo "We will be using $THREADS"
+	echo "We will be using $THREADS threads"
 
 	# cleaning data
 	# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
@@ -33,12 +35,19 @@ then
 	# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
 	mitofinder -j troch_$XXX -1 ./downsampling/Down_pair1_$XXX.fastq.gz -2 ./downsampling/Down_pair2_$XXX.fastq.gz -r ./reference/$REFERENCE -o 5 --override
 
-	if [$PROGRAM | tr [:lower:] [:upper:] == M]
-	then
-		# NOVOplasty looking for mitRNA
-		# all things are in config file
-		cd NOVOPlasty/
-		perl NOVOPlasty4.3.1.pl -c nowy_config.txt
-	fi
+
+elif [ $PROGRAM = N ];
+then
+	# NOVOplasty looking for mitRNA
+	# all things are in config file
+	cd NOVOPlasty/
+	perl NOVOPlasty4.3.1.pl -c nowy_config.txt
+	
 else
 	#go back
+	echo "wrong letter"
+	continue
+fi
+
+break
+done
