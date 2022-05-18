@@ -12,48 +12,54 @@ echo $NAZWY
 if [ $PROGRAM = M ];
 then
 
-	echo "What is thread count you want to use: "
-	read THREADS
-	echo "We will be using $THREADS threads"
+	for i in $NAZWY
+	do
+		echo "What is thread count you want to use: "
+		read THREADS
+		echo "We will be using $THREADS threads"
 
-	# cleaning data
-	# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
-	fastp -i ./input/$NAZWY.1.fastq.gz -I ./input/$NAZWY.2.fastq.gz  -o ./cleanded/Out1.fasta -O ./cleanded/Out2.fasta -w $THREADS
+		echo "give the full name of the reference file it must be in reference folder and in genebnak format: "
+		read REFERENCE_M
 
-	# chcecking size of the file for downsapling
-	XXX=$( seqkit stats ./cleaned/Out1.fasta -j $THREADS | awk '$1~"./cleaned/Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 	7000000/$1*100}' )
-	echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
-	echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
-	# read XXX
-	echo "We will downsaple to $XXX % of the original"
+		# cleaning data
+		# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
+		fastp -i ./input/$i.1.fastq.gz -I ./input/$i.2.fastq.gz  -o ./cleanded/$i.Out1.fasta -O ./cleanded/$i.Out2.fasta -w $THREADS
 
-	# downsampling i packing
-	# -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
-	./MITObim-1.9.1/misc_scripts/downsample.py -s $XXX --interleave -r ./cleaned/Out1.fasta -r ./cleaned/Out2.fasta | gzip > ./downsampling/Downsam_$XXX.fastaq.gz
+		# chcecking size of the file for downsapling
+		XXX=$( seqkit stats ./cleaned/Out1.fasta -j $THREADS | awk '$1~"./cleaned/Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 	7000000/$1*100}' )
+		echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
+		echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
+		# read XXX
+		echo "We will downsaple to $XXX % of the original"
 
-	# deinterlaving file
-	# in= input file(interlaved), out1= i out2= out files(seperated paired ends)
-	./BBMap_38.95/reformat.sh in=./downsampling/Downsam_$XXX.fastaq.gz out1=./downsampling/Down_pair1_$XXX.fastq.gz out2=./downsampling/Down_pair2_$XXX.fastq.gz 
+		# downsampling i packing
+		# -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
+		./MITObim-1.9.1/misc_scripts/downsample.py -s $XXX --interleave -r ./cleaned/$i.Out1.fasta -r ./cleaned/$i.Out2.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastaq.gz
 
-	echo "give the full name of the reference file it must be in reference folder and in genebnak format: "
-	read REFERENCE_M
+		# deinterlaving file
+		# in= input file(interlaved), out1= i out2= out files(seperated paired ends)
+		./BBMap_38.95/reformat.sh in=./downsampling/$i.downsam_$XXX.fastaq.gz out1=./downsampling/$i.down_pair1_$XXX.fastq.gz out2=./downsampling/$i.down_pair2_$XXX.fastq.gz 
 
-	# MITOfinder looking for mitRNA
-	# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
-	mitofinder -j troch_$XXX -1 ./downsampling/Down_pair1_$XXX.fastq.gz -2 ./downsampling/Down_pair2_$XXX.fastq.gz -r ./reference/$REFERENCE_M -o 5 --override
+		# MITOfinder looking for mitRNA
+		# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
+		mitofinder -j $i.$XXX -1 ./downsampling/$i.Down_pair1_$XXX.fastq.gz -2 ./downsampling/$i.Down_pair2_$XXX.fastq.gz -r ./reference/$REFERENCE_M -o 5 --override
 
+	done
 
 elif [ $PROGRAM = N ];
 then
 	# NOVOplasty looking for mitRNA
 	# creating config file
 
-	echo "Give the full name of the reference file. It must be in \"reference\" folder and in \"fasta\" format: "
-	read REFERENCE_N
+	for i in $NAZWY
+	do
 
-echo "Project:
+		echo "Give the full name of the reference file. It must be in \"reference\" folder and in \"fasta\" format: "
+		read REFERENCE_N
+
+		echo "Project:
 -----------------------
-Project name          = $NAZWY
+Project name          = $i
 Type                  = mito
 Genome Range          = 12000-22000
 K-mer                 = 33
@@ -73,8 +79,8 @@ Insert size           = 300
 Platform              = illumina
 Single/Paired         = PE
 Combined reads        = 
-Forward reads         = ../input/$NAZWY.1.fastq.gz
-Reverse reads         = ../input/$NAZWY.2.fastq.gz
+Forward reads         = ../input/$i.1.fastq.gz
+Reverse reads         = ../input/$i.2.fastq.gz
 Store Hash            =
 
 Heteroplasmy:
@@ -144,11 +150,15 @@ Optional:
 Insert size auto     = (yes/no) This will finetune your insert size automatically (Default: yes)                               
 Use Quality Scores   = It will take in account the quality scores, only use this when reads have low quality, like with the    
                        300 bp reads of Illumina (yes/no)
-Output path          = You can change the directory where all the output files wil be stored.)" > ./NOVOPlasty/$NAZWAY.config.txt
+Output path          = You can change the directory where all the output files wil be stored.)" > ./NOVOPlasty/$i.config.txt
 
-	# all things are in config file
-	cd NOVOPlasty/
-	perl NOVOPlasty4.3.1.pl -c $NAZWAY.config.txt
+echo "zapis"
+
+		# all things are in config file
+		cd NOVOPlasty/
+		perl NOVOPlasty4.3.1.pl -c $i.config.txt
+	
+	done
 	
 else
 	#go back
