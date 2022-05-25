@@ -1,7 +1,7 @@
 #!/bin/bash
 while true; do
 
-echo "Which program do you want to use(M/N)"
+echo "Which program do you want to use(M/N/B)"
 read PROGRAM
 PROGRAM=${PROGRAM^}
 
@@ -9,7 +9,7 @@ PROGRAM=${PROGRAM^}
 NAZWY=$(ls ./input |awk '$0 ~ ".1.fastq.gz"{print $0}' | awk -F "." '{print $1}')
 echo $NAZWY
 
-if [ $PROGRAM = M ];
+if [ $PROGRAM = M ] || [ $PROGRAM = B ];
 then
 
 	for i in $NAZWY
@@ -46,7 +46,7 @@ then
 
 	done
 
-elif [ $PROGRAM = N ];
+elif [ $PROGRAM = N ] || [ $PROGRAM = B ];
 then
 	# NOVOplasty looking for mitRNA
 	# creating config file
