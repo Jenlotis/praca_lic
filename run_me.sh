@@ -2,8 +2,7 @@
 
 # installing every important program(temporary version)
 
-if [ importand_condition = true ];
-do
+function programy () {
 
 sudo apt-get install --assume-yes fastqc
 sudo apt-get install --assume-yes seqkit
@@ -22,36 +21,21 @@ git clone https://github.com/chrishah/MITObim.git
 
 git clone https://github.com/Edith1715/NOVOplasty.git
 
-done
-fi
+}
 
 
+function mitfi() {
 
-while true; do
-
-echo "Which program do you want to use(M/N/B)"
-read PROGRAM
-PROGRAM=${PROGRAM^}
-
-# reads names of every set of input data for latter use
-NAZWY=$(ls ./input |awk '$0 ~ ".1.fastq.gz"{print $0}' | awk -F "." '{print $1}')
-echo $NAZWY
-
-if [ $PROGRAM = M ] || [ $PROGRAM = B ];
-then
-
-	for i in $NAZWY
-	do
-		echo "What is thread count you want to use: "
-		read THREADS
-		echo "We will be using $THREADS threads"
+		# echo "What is thread count you want to use: "
+		# read THREADS
+		# echo "We will be using $THREADS threads"
 
 		echo "give the full name of the reference file it must be in reference folder and in genebnak format: "
 		read REFERENCE_M
 
 		# cleaning data
 		# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
-		fastp -i ./input/$i.1.fastq.gz -I ./input/$i.2.fastq.gz  -o ./cleanded/$i.Out1.fasta -O ./cleanded/$i.Out2.fasta -w $THREADS
+		fastp -i $wejscie -I $WEJSCIE  -o ./cleanded/$i.Out1.fasta -O ./cleanded/$i.Out2.fasta -w $THREADS
 
 		# chcecking size of the file for downsapling
 		XXX=$( seqkit stats ./cleaned/Out1.fasta -j $THREADS | awk '$1~"./cleaned/Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 	7000000/$1*100}' )
@@ -72,18 +56,13 @@ then
 		# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
 		mitofinder -j $i.$XXX -1 ./downsampling/$i.Down_pair1_$XXX.fastq.gz -2 ./downsampling/$i.Down_pair2_$XXX.fastq.gz -r ./reference/$REFERENCE_M -o 5 --override
 
-	done
+}
 
-elif [ $PROGRAM = N ] || [ $PROGRAM = B ];
-then
+
+function novpla () {
+
 	# NOVOplasty looking for mitRNA
 	# creating config file
-
-	for i in $NAZWY
-	do
-
-		echo "Give the full name of the reference file. It must be in \"reference\" folder and in \"fasta\" format: "
-		read REFERENCE_N
 
 		echo "Project:
 -----------------------
@@ -107,8 +86,8 @@ Insert size           = 300
 Platform              = illumina
 Single/Paired         = PE
 Combined reads        = 
-Forward reads         = ../input/$i.1.fastq.gz
-Reverse reads         = ../input/$i.2.fastq.gz
+Forward reads         = $wejscie
+Reverse reads         = $WEJSCIE
 Store Hash            =
 
 Heteroplasmy:
@@ -183,15 +162,52 @@ Output path          = You can change the directory where all the output files w
 echo "zapis"
 
 		# all things are in config file
-		perl ./github/NOVOPlasty/NOVOPlasty4.3.1.pl -c $i.config.txt
-	
-	done
-	
-else
-	#go back
-	echo "wrong letter"
-	continue
-fi
+		perl ./github/NOVOPlasty/NOVOPlasty4.3.1.pl -c $i.config.txt	
 
-break
+}
+
+# jezeli nie ma argumentu(jezeli lista argumentow ma dlugosc 0) wyswietl manual
+while getopts "BMmtNn" OPTIONS;
+do
+
+	case $OPTIONS in
+	B)
+	echo "Both programs are running"
+	mitfi
+	novpla
+	;;
+	i)
+	echo "input 1 whole path"
+	wejscie="${OPTARG}"
+	;;
+	I)
+	echo "input 2 whole path"
+	WEJSCIE="${OPTARG}"
+	;;
+	M)
+	echo "only MITOfinder is running"
+	mitfi
+	;;
+	m)
+	echo "reference for MITOfinder"
+	REFERENCE_M="${OPTARG}"
+	;;
+	t)
+	echo "thread used"
+	THREADS="${OPTARG}"
+	;;
+	N)
+	echo "only NOVOPlasty is running"
+	novpla
+	;;	
+	n)
+	echo "reference for NOVOPlasty"
+	REFERENCE_N="${OPTARG}"
+	;;
+	Z)
+	echo "installing programs"
+	programy
+	;;
+	esac
 done
+
