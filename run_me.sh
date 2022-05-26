@@ -2,7 +2,7 @@
 
 # installing every important program(temporary version)
 
-function programy () {
+function programy() {
 
 sudo apt-get install --assume-yes fastqc
 sudo apt-get install --assume-yes seqkit
@@ -26,6 +26,9 @@ git clone https://github.com/Edith1715/NOVOplasty.git
 
 function mitfi() {
 
+	for i in $NAZWY;
+	do
+
 		# echo "What is thread count you want to use: "
 		# read THREADS
 		# echo "We will be using $THREADS threads"
@@ -35,7 +38,7 @@ function mitfi() {
 
 		# cleaning data
 		# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
-		fastp -i $wejscie -I $WEJSCIE  -o ./cleanded/$i.Out1.fasta -O ./cleanded/$i.Out2.fasta -w $THREADS
+		fastp -i $wejscie$i.1.fastq.gz -I $wejscie.2.fastq.gz  -o ./cleanded/$i.Out1.fasta -O ./cleanded/$i.Out2.fasta -w $THREADS
 
 		# chcecking size of the file for downsapling
 		XXX=$( seqkit stats ./cleaned/Out1.fasta -j $THREADS | awk '$1~"./cleaned/Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 	7000000/$1*100}' )
@@ -56,13 +59,19 @@ function mitfi() {
 		# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
 		mitofinder -j $i.$XXX -1 ./downsampling/$i.Down_pair1_$XXX.fastq.gz -2 ./downsampling/$i.Down_pair2_$XXX.fastq.gz -r ./reference/$REFERENCE_M -o 5 --override
 
+done
+fi
+
 }
 
 
 function novpla () {
 
-	# NOVOplasty looking for mitRNA
-	# creating config file
+	for i in $NAZWY;
+	do
+
+		# NOVOplasty looking for mitRNA
+		# creating config file
 
 		echo "Project:
 -----------------------
@@ -86,8 +95,8 @@ Insert size           = 300
 Platform              = illumina
 Single/Paired         = PE
 Combined reads        = 
-Forward reads         = $wejscie
-Reverse reads         = $WEJSCIE
+Forward reads         = $wejscie$i.1.fastq.gz
+Reverse reads         = $wejscoe$i.2.fastq.gz
 Store Hash            =
 
 Heteroplasmy:
@@ -159,55 +168,75 @@ Use Quality Scores   = It will take in account the quality scores, only use this
                        300 bp reads of Illumina (yes/no)
 Output path          = You can change the directory where all the output files wil be stored.)" > ./github/NOVOPlasty/$i.config.txt
 
-echo "zapis"
-
+		
 		# all things are in config file
 		perl ./github/NOVOPlasty/NOVOPlasty4.3.1.pl -c $i.config.txt	
+done
+fi
 
 }
 
 # jezeli nie ma argumentu(jezeli lista argumentow ma dlugosc 0) wyswietl manual
-while getopts "BMmtNn" OPTIONS;
+while test $# -gt 0;
 do
 
-	case $OPTIONS in
-	B)
-	echo "Both programs are running"
-	mitfi
-	novpla
-	;;
-	i)
-	echo "input 1 whole path"
-	wejscie="${OPTARG}"
-	;;
-	I)
-	echo "input 2 whole path"
-	WEJSCIE="${OPTARG}"
-	;;
-	M)
-	echo "only MITOfinder is running"
-	mitfi
-	;;
-	m)
-	echo "reference for MITOfinder"
-	REFERENCE_M="${OPTARG}"
-	;;
-	t)
-	echo "thread used"
-	THREADS="${OPTARG}"
-	;;
-	N)
-	echo "only NOVOPlasty is running"
-	novpla
-	;;	
-	n)
-	echo "reference for NOVOPlasty"
-	REFERENCE_N="${OPTARG}"
-	;;
+	case $1 in
+	-h | --help)
+		echo "$usage"
+		exit 0
+		;;
 	Z)
-	echo "installing programs"
-	programy
-	;;
+		echo "installing programs"
+		programy
+		exit 0
+		;;
+	-B)
+		echo "Both programs are running"
+		mitfi
+		novpla
+		shift
+		;;
+	i)
+		echo "input path to folder"
+		wejscie="${OPTARG}"
+		shift
+		;;
+	p)
+		echo "paired ends"
+		PAROWALNOSC="${OPTRAG}"
+		if [ $PAROWALNOSC == TRUE ]
+			# reads names of every set of input data for latter use
+			NAZWY=$(ls $wejscie |awk '$0 ~ ".1.fastq.gz"{print $0}' | awk -F "." '{print $1}')
+			echo $NAZWY
+		shift
+		;;
+	M)
+		echo "only MITOfinder is running"
+		mitfi
+		shift
+		;;
+	m)
+		echo "reference for MITOfinder"
+		REFERENCE_M="${OPTARG}"
+		shift
+		;;
+	t)
+		echo "thread used"
+		THREADS="${OPTARG}"
+		shift
+		;;
+	N)
+		echo "only NOVOPlasty is running"
+		novpla
+		shift
+		;;	
+	n)
+		echo "reference for NOVOPlasty"
+		REFERENCE_N="${OPTARG}"
+		shift
+		;;
+
+		
 	esac
 done
 
