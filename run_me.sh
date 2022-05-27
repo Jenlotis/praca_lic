@@ -32,12 +32,19 @@ function programy() {
 	sudo apt-get install --assume-yes git
 	sudo apt-get install --assume-yes awk
 	sudo apt-get install --assume-yes bbmap
+	sudo apt-get install automake autoconf  
 
 	mkdir ./github
 	cd ./github
 
 	git clone https://github.com/chrishah/MITObim.git
 	git clone https://github.com/Edith1715/NOVOplasty.git
+	git clone https://github.com/RemiAllio/MitoFinder.git
+		cd MitoFinder
+		./install.sh
+		p=$(pwd)
+		echo -e "\n#Path to MitoFinder \nexport PATH=\$PATH:$p" >> ~/.bashrc 
+		source ~/.bashrc  
 
 }
 
