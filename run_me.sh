@@ -2,24 +2,42 @@
 
 # installing every important program(temporary version)
 
+usage() {
+	cat <<EOF
+Options
+	-h	this help
+	-Z	instalation of all neded programs, nessesery github repositories are unpacked to new folder called gihub
+	-B	run both subprograms
+	-i	input path to folder with every file
+	-p	do read are paired deafult = T
+	-O	type of organism genetic code chceck MitoFinder -h for all options
+	-M	run mitofinder path
+	-m	full path to reference file for mitofinder(genebank format only)
+	-t	amount of threads programs in mitofinder path will gonna use
+	-N	run Novoplasty path
+	-n	full path to reference file for novoplasy
+		
+EOF
+
+}
+
 function programy() {
 
-sudo apt-get install --assume-yes fastqc
-sudo apt-get install --assume-yes seqkit
-sudo apt-get install --assume-yes fastp
-sudo apt-get install --assume-yes perl
-sudo apt-get install --assume-yes python-pip python3 python3-pip
-sudo apt-get install --assume-yes cmake
-sudo apt-get install --assume-yes git
-sudo apt-get install --assume-yes awk
-sudo apt-get install --assume-yes bbmap
+	sudo apt-get install --assume-yes fastqc
+	sudo apt-get install --assume-yes seqkit
+	sudo apt-get install --assume-yes fastp
+	sudo apt-get install --assume-yes perl
+	sudo apt-get install --assume-yes python-pip python3 python3-pip
+	sudo apt-get install --assume-yes cmake
+	sudo apt-get install --assume-yes git
+	sudo apt-get install --assume-yes awk
+	sudo apt-get install --assume-yes bbmap
 
-mkdir ~/github
-cd ~/github
+	mkdir ./github
+	cd ./github
 
-git clone https://github.com/chrishah/MITObim.git
-
-git clone https://github.com/Edith1715/NOVOplasty.git
+	git clone https://github.com/chrishah/MITObim.git
+	git clone https://github.com/Edith1715/NOVOplasty.git
 
 }
 
@@ -29,16 +47,9 @@ function mitfi() {
 	for i in $NAZWY;
 	do
 
-		# echo "What is thread count you want to use: "
-		# read THREADS
-		# echo "We will be using $THREADS threads"
-
-		echo "give the full name of the reference file it must be in reference folder and in genebnak format: "
-		read REFERENCE_M
-
 		# cleaning data
 		# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
-		fastp -i $wejscie$i.1.fastq.gz -I $wejscie.2.fastq.gz  -o ./cleanded/$i.Out1.fasta -O ./cleanded/$i.Out2.fasta -w $THREADS
+		fastp -i $wejscie$i.1.fastq.gz -I $wejscie$i.2.fastq.gz  -o ./cleanded/$i.Out1.fasta -O ./cleanded/$i.Out2.fasta -w $THREADS -V
 
 		# chcecking size of the file for downsapling
 		XXX=$( seqkit stats ./cleaned/Out1.fasta -j $THREADS | awk '$1~"./cleaned/Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 	7000000/$1*100}' )
@@ -57,10 +68,9 @@ function mitfi() {
 
 		# MITOfinder looking for mitRNA
 		# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
-		mitofinder -j $i.$XXX -1 ./downsampling/$i.Down_pair1_$XXX.fastq.gz -2 ./downsampling/$i.Down_pair2_$XXX.fastq.gz -r ./reference/$REFERENCE_M -o 5 --override
+		mitofinder -j $i.$XXX -1 ./downsampling/$i.Down_pair1_$XXX.fastq.gz -2 ./downsampling/$i.Down_pair2_$XXX.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
 
 done
-fi
 
 }
 
@@ -82,7 +92,7 @@ K-mer                 = 33
 Max memory            = 14
 Extended log          = 0
 Save assembled reads  = no
-Seed Input            = ../reference/$REFERENCE_N
+Seed Input            = $REFERENCE_N
 Extend seed directly  = no
 Reference sequence    =
 Variance detection    =
@@ -172,7 +182,6 @@ Output path          = You can change the directory where all the output files w
 		# all things are in config file
 		perl ./github/NOVOPlasty/NOVOPlasty4.3.1.pl -c $i.config.txt	
 done
-fi
 
 }
 
@@ -182,13 +191,56 @@ do
 
 	case $1 in
 	-h | --help)
-		echo "$usage"
+		usage
 		exit 0
 		;;
-	Z)
+	-Z)
 		echo "installing programs"
 		programy
 		exit 0
+		;;
+	-i)
+		echo "input path to folder"
+		wejscie=("$2")
+		shift
+		shift
+		;;
+	-p)
+		echo "paired ends"
+		PAROWALNOSC="$2"
+		echo "krok 1"
+		if [ $PAROWALNOSC = T ]
+		then
+			# reads names of every set of input data for latter use
+			NAZWY=$(ls $wejscie |awk '$0 ~ ".1.fastq.gz"{print $0}' | awk -F "." '{print $1}')
+			echo $NAZWY
+		fi
+		shift
+		shift
+		;;
+	-m)
+		echo "reference for MITOfinder"
+		REFERENCE_M="$2"
+		shift
+		shift
+		;;
+	-n)
+		echo "reference for NOVOPlasty"
+		REFERENCE_N="$2"
+		shift
+		shift
+		;;
+	-t)
+		echo "thread used"
+		THREADS="$2"
+		shift
+		shift
+		;;
+	-O)
+		echo "organism"
+		ORGANISM="$2"
+		shift
+		shift
 		;;
 	-B)
 		echo "Both programs are running"
@@ -196,45 +248,18 @@ do
 		novpla
 		shift
 		;;
-	i)
-		echo "input path to folder"
-		wejscie="${OPTARG}"
-		shift
-		;;
-	p)
-		echo "paired ends"
-		PAROWALNOSC="${OPTRAG}"
-		if [ $PAROWALNOSC == TRUE ]
-			# reads names of every set of input data for latter use
-			NAZWY=$(ls $wejscie |awk '$0 ~ ".1.fastq.gz"{print $0}' | awk -F "." '{print $1}')
-			echo $NAZWY
-		shift
-		;;
-	M)
+	-M)
 		echo "only MITOfinder is running"
 		mitfi
 		shift
 		;;
-	m)
-		echo "reference for MITOfinder"
-		REFERENCE_M="${OPTARG}"
-		shift
-		;;
-	t)
-		echo "thread used"
-		THREADS="${OPTARG}"
-		shift
-		;;
-	N)
+
+	-N)
 		echo "only NOVOPlasty is running"
 		novpla
 		shift
 		;;	
-	n)
-		echo "reference for NOVOPlasty"
-		REFERENCE_N="${OPTARG}"
-		shift
-		;;
+
 
 		
 	esac
