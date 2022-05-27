@@ -52,20 +52,21 @@ function mitfi() {
 		fastp -i $wejscie$i.1.fastq.gz -I $wejscie$i.2.fastq.gz  -o ./cleanded/$i.Out1.fasta -O ./cleanded/$i.Out2.fasta -w $THREADS -V
 
 		# chcecking size of the file for downsapling
-		XXX=$( seqkit stats ./cleaned/Out1.fasta -j $THREADS | awk '$1~"./cleaned/Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 	7000000/$1*100}' )
+		XXX=$( seqkit stats ./cleaned/Out1.fasta -j $THREADS | awk '$1~"./cleaned/$i.Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 	7000000/$1*100}' )
 		echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
 		echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
-		# read XXX
+		XXX=9 #${XXX%.*}
 		echo "We will downsaple to $XXX % of the original"
 
 		# downsampling i packing
 		# -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
-		./github/MITObim-1.9.1/misc_scripts/downsample.py -s $XXX --interleave -r ./cleaned/$i.Out1.fasta -r ./cleaned/$i.Out2.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastaq.gz
-
+		./github/MITObim/misc_scripts/downsample.py -s $XXX --interleave -r ./cleaned/$i.Out1.fasta -r ./cleaned/$i.Out2.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastaq.gz
+		
 		# deinterlaving file
 		# in= input file(interlaved), out1= i out2= out files(seperated paired ends)
-		reformat.sh int=f in=./downsampling/$i.downsam_$XXX.fastaq.gz out1=./downsampling/$i.down_pair1_$XXX.fastq.gz out2=./downsampling/$i.down_pair2_$XXX.fastq.gz 
-
+		reformat.sh int=t in=./downsampling/$i.downsam_$XXX.fastaq.gz out1=./downsampling/$i.down_pair1_$XXX.fastq.gz out2=./downsampling/$i.down_pair2_$XXX.fastq.gz overwrite=true
+		
+		echo $REFERENCE_M "kaka"
 		# MITOfinder looking for mitRNA
 		# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
 		mitofinder -j $i.$XXX -1 ./downsampling/$i.Down_pair1_$XXX.fastq.gz -2 ./downsampling/$i.Down_pair2_$XXX.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
@@ -106,7 +107,7 @@ Platform              = illumina
 Single/Paired         = PE
 Combined reads        = 
 Forward reads         = $wejscie$i.1.fastq.gz
-Reverse reads         = $wejscoe$i.2.fastq.gz
+Reverse reads         = $wejscie$i.2.fastq.gz
 Store Hash            =
 
 Heteroplasmy:
@@ -176,11 +177,11 @@ Optional:
 Insert size auto     = (yes/no) This will finetune your insert size automatically (Default: yes)                               
 Use Quality Scores   = It will take in account the quality scores, only use this when reads have low quality, like with the    
                        300 bp reads of Illumina (yes/no)
-Output path          = You can change the directory where all the output files wil be stored.)" > ./github/NOVOPlasty/$i.config.txt
+Output path          = You can change the directory where all the output files wil be stored.)" > ./github/NOVOplasty/$i\_config.txt
 
 		
 		# all things are in config file
-		perl ./github/NOVOPlasty/NOVOPlasty4.3.1.pl -c $i.config.txt	
+		perl ./github/NOVOplasty/NOVOPlasty4.3.1.pl -c ./github/NOVOplasty/$i\_config.txt	
 done
 
 }
@@ -208,7 +209,6 @@ do
 	-p)
 		echo "paired ends"
 		PAROWALNOSC="$2"
-		echo "krok 1"
 		if [ $PAROWALNOSC = T ]
 		then
 			# reads names of every set of input data for latter use
@@ -264,4 +264,4 @@ do
 		
 	esac
 done
-
+exit 3
