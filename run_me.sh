@@ -62,7 +62,8 @@ function mitfi() {
 		XXX=$( seqkit stats ./cleaned/Out1.fasta -j $THREADS | awk '$1~"./cleaned/$i.Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 	7000000/$1*100}' )
 		echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
 		echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
-		XXX=9 #${XXX%.*}
+		read XXX
+		#XXX=9 #${XXX%.*}
 		echo "We will downsaple to $XXX % of the original"
 
 		# downsampling i packing
