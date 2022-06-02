@@ -30,7 +30,7 @@ function programy() {
 	sudo apt-get install --assume-yes python-pip python3 python3-pip
 	sudo apt-get install --assume-yes cmake
 	sudo apt-get install --assume-yes git
-	sudo apt-get install --assume-yes awk
+	sudo apt-get install --assume-yes mawk
 	sudo apt-get install --assume-yes bbmap
 	sudo apt-get install automake autoconf  
 
@@ -194,6 +194,8 @@ done
 
 }
 
+alfa=alfa
+
 # jezeli nie ma argumentu(jezeli lista argumentow ma dlugosc 0) wyswietl manual
 while test $# -gt 0;
 do
@@ -253,21 +255,21 @@ do
 	-B)
 		echo "Both programs are running"
 		alfa=B
-		#mitfi
-		#novpla
+		# mitfi
+		# novpla
 		shift
 		;;
 	-M)
 		echo "only MITOfinder is running"
-		afla=M
-		#mitfi
+		alfa=M
+		# mitfi
 		shift
 		;;
 
 	-N)
 		echo "only NOVOPlasty is running"
 		alfa=N
-		#novpla
+		# novpla
 		shift
 		;;	
 
@@ -276,20 +278,18 @@ do
 	esac
 done
 
-if [ $alfa = B ];
+if [ $alfa == B ];
 	then
 	mitfi
 	novpla
-elif [ $alfa = M ];
+elif [ $alfa == M ];
 	then
 	mitfi
-elif [ $alfa = N ];
+elif [ $alfa == N ];
 	then
 	novpla
 else
-	echo "program not chosen, both will be run"	
-	mitfi
-	novpla
+	echo "program not chosen"
 fi
 	
 exit 3
