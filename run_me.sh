@@ -252,19 +252,22 @@ do
 		;;
 	-B)
 		echo "Both programs are running"
-		mitfi
-		novpla
+		alfa=B
+		#mitfi
+		#novpla
 		shift
 		;;
 	-M)
 		echo "only MITOfinder is running"
-		mitfi
+		afla=M
+		#mitfi
 		shift
 		;;
 
 	-N)
 		echo "only NOVOPlasty is running"
-		novpla
+		alfa=N
+		#novpla
 		shift
 		;;	
 
@@ -272,4 +275,21 @@ do
 		
 	esac
 done
+
+if [ $alfa = B ];
+	then
+	mitfi
+	novpla
+elif [ $alfa = M ];
+	then
+	mitfi
+elif [ $alfa = N ];
+	then
+	novpla
+else
+	echo "program not chosen, both will be run"	
+	mitfi
+	novpla
+fi
+	
 exit 3
