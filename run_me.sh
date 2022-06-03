@@ -53,19 +53,19 @@ function mitfi() {
 
 	for i in $NAZWY;
 	do
-
+		echo $i "k########################################"
 		# cleaning data
 		# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
-		fastp -i $wejscie$i.1.fastq.gz -I $wejscie$i.2.fastq.gz  -o ./cleanded/$i.Out1.fasta -O ./cleanded/$i.Out2.fasta -w $THREADS -V
+		fastp -i $wejscie$i.1.fastq.gz -I $wejscie$i.2.fastq.gz  -o ./cleaned/$i.Out1.fasta -O ./cleaned/$i.Out2.fasta $THREADf -V
 
 		# chcecking size of the file for downsapling
-		XXX=$( seqkit stats ./cleaned/Out1.fasta -j $THREADS | awk '$1~"./cleaned/$i.Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 	7000000/$1*100}' )
+		XXX=$( seqkit stats ./cleaned/$i.Out1.fasta $THREADs | awk -v dolari="$i" '$1~"./cleaned/"dolari".Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 7000000/$1*100}' )
 		echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
 		echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
 		read XXX
 		#XXX=9 #${XXX%.*}
 		echo "We will downsaple to $XXX % of the original"
-
+		echo $i "hellllllllllllllllloo"
 		# downsampling i packing
 		# -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
 		./github/MITObim/misc_scripts/downsample.py -s $XXX --interleave -r ./cleaned/$i.Out1.fasta -r ./cleaned/$i.Out2.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastaq.gz
@@ -242,7 +242,8 @@ do
 		;;
 	-t)
 		echo "thread used"
-		THREADS="$2"
+		THREADf="-w $2"
+		THREADs="-j $2"
 		shift
 		shift
 		;;
