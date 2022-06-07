@@ -307,7 +307,7 @@ done
 if [ $PAROWALNOSC = T ]
 then
 	# reads names of every set of input data
-	NAZWY=$(ls $wejscie |awk '$0 ~ ".1.fastq.gz"{print $0}' | awk -F "." '{print $1}')
+	NAZWY=$(ls $wejscie |awk '$0 ~ ".1.fastq.gz" {print $0}' | awk -F "." '{print $1}')
 	echo $NAZWY
 
 		if [ $alfa == B ];
@@ -327,7 +327,7 @@ then
 elif [ $PAROWALNOSC = F ]
 then
 	# reads names of every set of input data
-	NAZWY=$(ls $wejscie |awk '$0 ~ ".1.fastq.gz"{print $0}' | awk -F "." '{print $1}')
+	NAZWY=$(ls |awk '$0 ~ ".fastq.gz" {print $0}' |awk -F "." '$2 !~ "1" && $2 !~ "2" '| awk -F "." '{print $1}')
 	echo $NAZWY
 		
 		if [ $alfa == B ];
