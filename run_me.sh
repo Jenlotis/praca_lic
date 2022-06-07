@@ -6,15 +6,15 @@ usage() {
 	cat <<EOF
 Options
 	-h	this help
-	-Z	instalation of all neded programs, nessesery github repositories are unpacked to new folder called gihub
-	-B	run both subprograms
+	-Z	instalation of all neded programs, nessesery github repositories are unpacked to new folder called 'gihub'
+	-B	run both subprograms, in case of '-p F' only runs Mitofinder path
 	-i	input path to folder with every file
-	-p	do read are paired deafult = T
-	-O	type of organism genetic code chceck MitoFinder -h for all options
+	-p	do read are paired, deafult='T'
+	-O	type of organism genetic code chceck 'MitoFinder -h' for all options
 	-M	run mitofinder path
 	-m	full path to reference file for mitofinder(genebank format only)
 	-t	amount of threads programs in mitofinder path will gonna use
-	-N	run Novoplasty path
+	-N	run Novoplasty path, path not used in '-p F'(novoplasty doesn't support single ends)
 	-n	full path to reference file for novoplasy
 		
 EOF
@@ -53,7 +53,7 @@ function mitfi() {
 
 	for i in $NAZWY;
 	do
-		echo $i "k########################################"
+
 		# cleaning data
 		# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
 		fastp -i $wejscie$i.1.fastq.gz -I $wejscie$i.2.fastq.gz  -o ./cleaned/$i.Out1.fasta -O ./cleaned/$i.Out2.fasta $THREADf -V
@@ -65,7 +65,7 @@ function mitfi() {
 		read XXX
 		#XXX=9 #${XXX%.*}
 		echo "We will downsaple to $XXX % of the original"
-		echo $i "hellllllllllllllllloo"
+		
 		# downsampling i packing
 		# -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
 		./github/MITObim/misc_scripts/downsample.py -s $XXX --interleave -r ./cleaned/$i.Out1.fasta -r ./cleaned/$i.Out2.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastaq.gz
@@ -74,7 +74,6 @@ function mitfi() {
 		# in= input file(interlaved), out1= i out2= out files(seperated paired ends)
 		reformat.sh int=t in=./downsampling/$i.downsam_$XXX.fastaq.gz out1=./downsampling/$i.down_pair1_$XXX.fastq.gz out2=./downsampling/$i.down_pair2_$XXX.fastq.gz overwrite=true
 		
-		echo $REFERENCE_M "kaka"
 		# MITOfinder looking for mitRNA
 		# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
 		mitofinder -j $i.$XXX -1 ./downsampling/$i.Down_pair1_$XXX.fastq.gz -2 ./downsampling/$i.Down_pair2_$XXX.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
@@ -194,7 +193,39 @@ done
 
 }
 
+
+function mitfising() {
+
+for i in $NAZWY;
+do
+
+# cleaning data
+		# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
+		fastp -i $wejscie$i.1.fastq.gz -o ./cleaned/$i.Out.fasta $THREADf -V
+
+		# chcecking size of the file for downsapling
+		XXX=$( seqkit stats ./cleaned/$i.Out1.fasta $THREADs | awk -v dolari="$i" '$1~"./cleaned/"dolari".Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 7000000/$1*100}' )
+		echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
+		echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
+		read XXX
+		#XXX=9 #${XXX%.*}
+		echo "We will downsaple to $XXX % of the original"
+		
+		# downsampling i packing
+		# -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
+		./github/MITObim/misc_scripts/downsample.py -s $XXX --interleave -r ./cleaned/$i.Out.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastaq.gz
+
+		# MITOfinder looking for mitRNA
+		# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
+		mitofinder -j $i.$XXX -s ./downsampling/$i.Down_pair1_$XXX.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
+
+done
+}
+
+
+
 alfa=alfa
+PAROWALNOSC=T
 
 # jezeli nie ma argumentu(jezeli lista argumentow ma dlugosc 0) wyswietl manual
 while test $# -gt 0;
@@ -219,12 +250,6 @@ do
 	-p)
 		echo "paired ends"
 		PAROWALNOSC="$2"
-		if [ $PAROWALNOSC = T ]
-		then
-			# reads names of every set of input data for latter use
-			NAZWY=$(ls $wejscie |awk '$0 ~ ".1.fastq.gz"{print $0}' | awk -F "." '{print $1}')
-			echo $NAZWY
-		fi
 		shift
 		shift
 		;;
@@ -279,18 +304,43 @@ do
 	esac
 done
 
-if [ $alfa == B ];
-	then
-	mitfi
-	novpla
-elif [ $alfa == M ];
-	then
-	mitfi
-elif [ $alfa == N ];
-	then
-	novpla
-else
-	echo "program not chosen"
+if [ $PAROWALNOSC = T ]
+then
+	# reads names of every set of input data
+	NAZWY=$(ls $wejscie |awk '$0 ~ ".1.fastq.gz"{print $0}' | awk -F "." '{print $1}')
+	echo $NAZWY
+
+		if [ $alfa == B ];
+		then
+			mitfi
+			novpla
+		elif [ $alfa == M ];
+		then
+			mitfi
+		elif [ $alfa == N ];
+		then
+			novpla
+		else
+			echo "program not chosen"
+		fi
+
+elif [ $PAROWALNOSC = F ]
+then
+	# reads names of every set of input data
+	NAZWY=$(ls $wejscie |awk '$0 ~ ".1.fastq.gz"{print $0}' | awk -F "." '{print $1}')
+	echo $NAZWY
+		
+		if [ $alfa == B ];
+		then
+			mitfising
+		
+		elif [ $alfa == M ];
+		then
+			mitfising
+		else
+			echo "program not chosen"
+
+		fi
 fi
-	
 exit 3
+
