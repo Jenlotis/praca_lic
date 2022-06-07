@@ -75,8 +75,8 @@ function mitfi() {
 		reformat.sh int=t in=./downsampling/$i.downsam_$XXX.fastaq.gz out1=./downsampling/$i.down_pair1_$XXX.fastq.gz out2=./downsampling/$i.down_pair2_$XXX.fastq.gz overwrite=true
 		
 		# MITOfinder looking for mitRNA
-		# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
-		mitofinder -j $i.$XXX -1 ./downsampling/$i.Down_pair1_$XXX.fastq.gz -2 ./downsampling/$i.Down_pair2_$XXX.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
+		# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which genetic code to use(5-Invertebrate(bezkregowce))
+		mitofinder -j $i.$XXX -1 ./downsampling/$i.down_pair1_$XXX.fastq.gz -2 ./downsampling/$i.down_pair2_$XXX.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
 
 done
 
@@ -201,10 +201,10 @@ do
 
 # cleaning data
 		# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
-		fastp -i $wejscie$i.1.fastq.gz -o ./cleaned/$i.Out.fasta $THREADf -V
+		fastp -i $wejscie$i.fastq.gz -o ./cleaned/$i.Out.fasta $THREADf -V
 
 		# chcecking size of the file for downsapling
-		XXX=$( seqkit stats ./cleaned/$i.Out1.fasta $THREADs | awk -v dolari="$i" '$1~"./cleaned/"dolari".Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 7000000/$1*100}' )
+		XXX=$( seqkit stats ./cleaned/$i.Out.fasta $THREADs | awk -v dolari="$i" '$1~"./cleaned/"dolari".Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 7000000/$1*100}' )
 		echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
 		echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
 		read XXX
@@ -216,8 +216,8 @@ do
 		./github/MITObim/misc_scripts/downsample.py -s $XXX --interleave -r ./cleaned/$i.Out.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastaq.gz
 
 		# MITOfinder looking for mitRNA
-		# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which geneteci code to use(5-Invertebrate(bezkregowce))
-		mitofinder -j $i.$XXX -s ./downsampling/$i.Down_pair1_$XXX.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
+		# -j process name(internal ID), -s input file single end, -r reference sequence, -o which genetic code to use(5-Invertebrate(bezkregowce))
+		mitofinder -j $i.$XXX -s ./downsampling/$i.downsam_$XXX.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
 
 done
 }
@@ -339,7 +339,6 @@ then
 			mitfising
 		else
 			echo "program not chosen"
-
 		fi
 fi
 exit 3
