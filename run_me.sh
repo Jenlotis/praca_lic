@@ -256,12 +256,30 @@ do
 	-m)
 		echo "reference for MITOfinder"
 		REFERENCE_M="$2"
+		dana= grep -c LOCUS $REFERENCE_M
+		echo $dana
+		if [ $dana != 1 ]
+		then
+			echo "wrong file format for reference file for MITOfinder should be GenBank format"
+			exit 3
+		else
+			echo "tak"
+		fi	
 		shift
 		shift
 		;;
 	-n)
 		echo "reference for NOVOPlasty"
 		REFERENCE_N="$2"
+		dana= grep -c ">" $REFERENCE_N
+		echo $dana
+		if [ $dana != 1 ]
+		then
+			echo "wrong file format for reference file for NOVOPlasty should be fasta format"
+			exit 3
+		else
+			echo
+		fi
 		shift
 		shift
 		;;
@@ -341,5 +359,5 @@ then
 			echo "program not chosen"
 		fi
 fi
-exit 3
+exit 1
 
