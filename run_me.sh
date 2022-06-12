@@ -23,7 +23,6 @@ EOF
 
 function programy() {
 
-	sudo apt-get install --assume-yes fastqc
 	sudo apt-get install --assume-yes seqkit
 	sudo apt-get install --assume-yes fastp
 	sudo apt-get install --assume-yes perl
