@@ -198,7 +198,7 @@ function mitfising() {
 for i in $NAZWY;
 do
 
-# cleaning data
+		# cleaning data
 		# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
 		fastp -i $wejscie$i.fastq.gz -o ./cleaned/$i.Out.fasta $THREADf -V
 
@@ -236,24 +236,24 @@ do
 		exit 0
 		;;
 	-Z)
-		echo "installing programs"
+		#echo "installing programs"
 		programy
 		exit 0
 		;;
 	-i)
-		echo "input path to folder"
+		#echo "input path to folder"
 		wejscie=("$2")
 		shift
 		shift
 		;;
 	-p)
-		echo "paired ends"
+		#echo "paired ends"
 		PAROWALNOSC="$2"
 		shift
 		shift
 		;;
 	-m)
-		echo "reference for MITOfinder"
+		#echo "reference for MITOfinder"
 		REFERENCE_M="$2"
 		dana= grep -c LOCUS $REFERENCE_M
 		echo $dana
@@ -262,19 +262,19 @@ do
 			echo "wrong file format for reference file for MITOfinder should be GenBank format"
 			exit 3
 		else
-			echo "tak"
+			echo 
 		fi	
 		shift
 		shift
 		;;
 	-n)
-		echo "reference for NOVOPlasty"
+		#echo "reference for NOVOPlasty"
 		REFERENCE_N="$2"
 		dana= grep -c ">" $REFERENCE_N
 		echo $dana
 		if [ $dana != 1 ]
 		then
-			echo "wrong file format for reference file for NOVOPlasty should be fasta format"
+			echo "wrong file format for reference file for NOVOplasty should be fasta format"
 			exit 3
 		else
 			echo
@@ -283,36 +283,32 @@ do
 		shift
 		;;
 	-t)
-		echo "thread used"
+		#echo "thread used"
 		THREADf="-w $2"
 		THREADs="-j $2"
 		shift
 		shift
 		;;
 	-O)
-		echo "organism"
+		#echo "organism"
 		ORGANISM="$2"
 		shift
 		shift
 		;;
 	-B)
-		echo "Both programs are running"
+		#echo "Both programs are running"
 		alfa=B
-		# mitfi
-		# novpla
 		shift
 		;;
 	-M)
-		echo "only MITOfinder is running"
+		#echo "only MITOfinder is running"
 		alfa=M
-		# mitfi
 		shift
 		;;
 
 	-N)
-		echo "only NOVOPlasty is running"
+		#echo "only NOVOPlasty is running"
 		alfa=N
-		# novpla
 		shift
 		;;	
 
