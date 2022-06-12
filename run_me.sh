@@ -9,7 +9,7 @@ Options
 	-Z	instalation of all neded programs, nessesery github repositories are unpacked to new folder called 'gihub'
 	-B	run both subprograms, in case of '-p F' only runs Mitofinder path
 	-i	input path to folder with every file
-	-p	do read are paired, deafult='T'
+	-p	do read are paired(T/F), deafult='T'
 	-O	type of organism genetic code chceck 'MitoFinder -h' for all options
 	-M	run mitofinder path
 	-m	full path to reference file for mitofinder(genebank format only)
@@ -345,7 +345,7 @@ then
 elif [ $PAROWALNOSC = F ]
 then
 	# reads names of every set of input data
-	NAZWY=$(ls |awk '$0 ~ ".fastq.gz" {print $0}' |awk -F "." '$2 !~ "1" && $2 !~ "2" '| awk -F "." '{print $1}')
+	NAZWY=$(ls $wejscie |awk '$0 ~ ".fastq.gz" {print $0}' |awk -F "." '$2 !~ "1" && $2 !~ "2" '| awk -F "." '{print $1}')
 	echo $NAZWY
 		
 		if [ $alfa == B ];
