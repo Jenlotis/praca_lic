@@ -213,7 +213,7 @@ do
 		
 		# downsampling i packing
 		# -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
-		./github/MITObim/misc_scripts/downsample.py -s $XXX --interleave -r ./cleaned/$i.Out.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastaq.gz
+		./github/MITObim/misc_scripts/downsample.py -s $XXX -r ./cleaned/$i.Out.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastaq.gz
 
 		# MITOfinder looking for mitRNA
 		# -j process name(internal ID), -s input file single end, -r reference sequence, -o which genetic code to use(5-Invertebrate(bezkregowce))
