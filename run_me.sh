@@ -317,6 +317,9 @@ do
 	esac
 done
 
+mkdir ./cleaned
+mkdir ./downsampling
+
 if [ $PAROWALNOSC = T ]
 then
 	# reads names of every set of input data
