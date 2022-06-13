@@ -203,7 +203,7 @@ do
 		fastp -i $wejscie$i.fastq.gz -o ./cleaned/$i.Out.fasta $THREADf -V
 
 		# chcecking size of the file for downsapling
-		XXX=$( seqkit stats ./cleaned/$i.Out.fasta $THREADs | awk -v dolari="$i" '$1~"./cleaned/"dolari".Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 7000000/$1*100}' )
+		XXX=$( seqkit stats ./cleaned/$i.Out.fasta $THREADs | awk -v dolari="$i" '$1~"./cleaned/"dolari".Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 14000000/$1*100}' )
 		echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
 		echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
 		read XXX
