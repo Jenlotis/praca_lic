@@ -16,7 +16,8 @@ Options
 	-t	amount of threads programs in mitofinder path will gonna use
 	-N	run Novoplasty path, path not used in '-p F'(novoplasty doesn't support single ends)
 	-n	full path to reference file for novoplasy
-		
+	-r	amount of RAM NOVOplasty is allowed to use(if you have more than 2 times RAM as  size of input file you can ignore this field)
+	
 EOF
 
 }
@@ -96,7 +97,7 @@ Project name          = $i
 Type                  = mito
 Genome Range          = 12000-22000
 K-mer                 = 33
-Max memory            = 14
+Max memory            = $RAMM
 Extended log          = 0
 Save assembled reads  = no
 Seed Input            = $REFERENCE_N
@@ -292,6 +293,12 @@ do
 	-O)
 		#echo "organism"
 		ORGANISM="$2"
+		shift
+		shift
+		;;
+	-r)
+		#amount of RAM
+		RAMM="$2"
 		shift
 		shift
 		;;
