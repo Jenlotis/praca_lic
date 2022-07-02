@@ -9,22 +9,26 @@ Options
 	-Z	instalation of all neded programs, nessesery github repositories are unpacked to new folder called 'gihub'
 	-B	run both subprograms, in case of '-p F' only runs Mitofinder path
 	-i	input path to folder with every file
-	-p	do read are paired(T/F), deafult='T'
+	-p	do read are paired, deafult='T'
 	-O	type of organism genetic code chceck 'MitoFinder -h' for all options
 	-M	run mitofinder path
 	-m	full path to reference file for mitofinder(genebank format only)
 	-t	amount of threads programs in mitofinder path will gonna use
 	-N	run Novoplasty path, path not used in '-p F'(novoplasty doesn't support single ends)
 	-n	full path to reference file for novoplasy
-	-r	amount of RAM NOVOplasty is allowed to use(if you have more than 2 times RAM as  size of input file you can ignore this field)
-	
+
 EOF
 
 }
 
 function programy() {
 
-	sudo apt-get install --assume-yes seqkit
+	sudo apt-get install --assume-yes fastqc
+	sudo apt-get install --assume-yes curl
+	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+	echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/$USER/.profile
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+	brew install seqkit
 	sudo apt-get install --assume-yes fastp
 	sudo apt-get install --assume-yes perl
 	sudo apt-get install --assume-yes python-pip python3 python3-pip
@@ -32,7 +36,10 @@ function programy() {
 	sudo apt-get install --assume-yes git
 	sudo apt-get install --assume-yes mawk
 	sudo apt-get install --assume-yes bbmap
-	sudo apt-get install automake autoconf  
+	sudo apt-get install automake autoconf
+
+	mkdir ./cleaned
+	mkdir ./downsampling
 
 	mkdir ./github
 	cd ./github
@@ -43,8 +50,8 @@ function programy() {
 		cd MitoFinder
 		./install.sh
 		p=$(pwd)
-		echo -e "\n#Path to MitoFinder \nexport PATH=\$PATH:$p" >> ~/.bashrc 
-		source ~/.bashrc  
+		echo -e "\n#Path to MitoFinder \nexport PATH=\$PATH:$p" >> ~/.bashrc
+		source ~/.bashrc
 
 }
 
@@ -54,29 +61,55 @@ function mitfi() {
 	for i in $NAZWY;
 	do
 
-		# cleaning data
-		# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
-		fastp -i $wejscie$i.1.fastq.gz -I $wejscie$i.2.fastq.gz  -o ./cleaned/$i.Out1.fasta -O ./cleaned/$i.Out2.fasta $THREADf -V
+		if [[ $( ls ./cleaned/ | grep -c $i ) != 2 ]];
+		then
+			# cleaning data
+			# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
+			fastp -i $wejscie$i.1.fastq.gz -I $wejscie$i.2.fastq.gz  -o ./cleaned/$i.Out1.fastq.gz -O ./cleaned/$i.Out2.fastq.gz $THREADf -V
+		fi
 
-		# chcecking size of the file for downsapling
-		XXX=$( seqkit stats ./cleaned/$i.Out1.fasta $THREADs | awk -v dolari="$i" '$1~"./cleaned/"dolari".Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 7000000/$1*100}' )
-		echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
-		echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
-		read XXX
-		#XXX=9 #${XXX%.*}
-		echo "We will downsaple to $XXX % of the original"
-		
-		# downsampling i packing
-		# -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
-		./github/MITObim/misc_scripts/downsample.py -s $XXX --interleave -r ./cleaned/$i.Out1.fasta -r ./cleaned/$i.Out2.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastaq.gz
-		
-		# deinterlaving file
-		# in= input file(interlaved), out1= i out2= out files(seperated paired ends)
-		reformat.sh int=t in=./downsampling/$i.downsam_$XXX.fastaq.gz out1=./downsampling/$i.down_pair1_$XXX.fastq.gz out2=./downsampling/$i.down_pair2_$XXX.fastq.gz overwrite=true
-		
+		if [[ $( ls ./downsampling/ | grep -c $i.down_pair ) = 2 ]];
+		then
+			procenty=$( ls ./downsampling/ | grep $i.downsam_ | awk -F "." '{print $2}' | awk -F "_" '{print $2}' )
+			echo "there allready are downsampled files from $i to $procenty %"
+			echo "do you want to use existing one or create new one(Existing/New)"
+			read CCC
+			if [[ $CCC = E ]];
+			then
+				echo "what percent ($procenty)"
+				read XXX
+				echo $XXX
+			elif [[ $CCC = N ]];
+			then
+				DOWN=Start
+			fi
+		else
+			DOWN=Start
+		fi
+
+		if [[ $DOWN = Start ]];
+		then
+			# chcecking size of the file for downsapling
+			date +%T
+			XXX=$( seqkit stats ./cleaned/$i.Out1.fastq.gz $THREADs | awk -v dolari="$i" '$1~"./cleaned/"dolari".Out1.fastq.gz" {print $4}' | sed 's/,//g' | awk '{print 7000000/$1*100}' )
+			echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
+			echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
+			read XXX
+			#XXX=9 #${XXX%.*}
+			echo "We will downsaple to $XXX % of the original"
+
+			# downsampling i packing
+			# -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
+			python2 ./github/MITObim/misc_scripts/downsample.py -s $XXX --interleave -r ./cleaned/$i.Out1.fastq.gz -r ./cleaned/$i.Out2.fastq.gz | gzip > ./downsampling/$i.downsam_$XXX.fastq.gz
+
+			# deinterlaving file
+			# in= input file(interlaved), out1= i out2= out files(seperated paired ends)
+			reformat.sh int=t in=./downsampling/$i.downsam_$XXX.fastq.gz out1=./downsampling/$i.down_pair$XXX.1.fastq.gz out2=./downsampling/$i.down_pair$XXX.2.fastq.gz overwrite=true
+		fi
+
 		# MITOfinder looking for mitRNA
 		# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which genetic code to use(5-Invertebrate(bezkregowce))
-		mitofinder -j $i.$XXX -1 ./downsampling/$i.down_pair1_$XXX.fastq.gz -2 ./downsampling/$i.down_pair2_$XXX.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
+		python2 ./github/MitoFinder/mitofinder -j $i.$XXX -1 ./downsampling/$i.down_pair$XXX.1.fastq.gz -2 ./downsampling/$i.down_pair$XXX.2.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
 
 done
 
@@ -97,7 +130,7 @@ Project name          = $i
 Type                  = mito
 Genome Range          = 12000-22000
 K-mer                 = 33
-Max memory            = $RAMM
+Max memory            = 14
 Extended log          = 0
 Save assembled reads  = no
 Seed Input            = $REFERENCE_N
@@ -112,49 +145,49 @@ Read Length           = 151
 Insert size           = 300
 Platform              = illumina
 Single/Paired         = PE
-Combined reads        = 
+Combined reads        =
 Forward reads         = $wejscie$i.1.fastq.gz
 Reverse reads         = $wejscie$i.2.fastq.gz
 Store Hash            =
 
 Heteroplasmy:
 -----------------------
-MAF                   = 
-HP exclude list       = 
-PCR-free              = 
+MAF                   =
+HP exclude list       =
+PCR-free              =
 
 Optional:
 -----------------------
 Insert size auto      = yes
 Use Quality Scores    = no
-Output path           = 
+Output path           =
 
 
 Project:
 -----------------------
 Project name         = Choose a name for your project, it will be used for the output files.
-Type                 = (chloro/mito/mito_plant) \"chloro\" for chloroplast assembly, \"mito\" for mitochondrial assembly and 
+Type                 = (chloro/mito/mito_plant) \"chloro\" for chloroplast assembly, \"mito\" for mitochondrial assembly and
                        \"mito_plant\" for mitochondrial assembly in plants.
 Genome Range         = (minimum genome size-maximum genome size) The expected genome size range of the genome.
                        Default value for mito: 12000-20000 / Default value for chloro: 120000-200000
                        If the expected size is know, you can lower the range, this can be useful when there is a repetitive
                        region, what could lead to a premature circularization of the genome.
-K-mer                = (integer) This is the length of the overlap between matching reads (Default: 33). 
-                       If reads are shorter then 90 bp or you have low coverage data, this value should be decreased down to 23. 
+K-mer                = (integer) This is the length of the overlap between matching reads (Default: 33).
+                       If reads are shorter then 90 bp or you have low coverage data, this value should be decreased down to 23.
                        For reads longer then 101 bp, this value can be increased, but this is not necessary.
-Max memory           = You can choose a max memory usage, suitable to automatically subsample the data or when you have limited                      
+Max memory           = You can choose a max memory usage, suitable to automatically subsample the data or when you have limited
                        memory capacity. If you have sufficient memory, leave it blank, else write your available memory in GB
                        (if you have for example a 8 GB RAM laptop, put down 7 or 7.5 (don\'t add the unit in the config file))
 Extended log         = Prints out a very extensive log, could be useful to send me when there is a problem  (0/1).
 Save assembled reads = All the reads used for the assembly will be stored in seperate files (yes/no)
 Seed Input           = The path to the file that contains the seed sequence.
-Extend seed directly = This gives the option to extend the seed directly, in stead of finding matching reads. Only use this when your seed 
+Extend seed directly = This gives the option to extend the seed directly, in stead of finding matching reads. Only use this when your seed
                        originates from the same sample and there are no possible mismatches (yes/no)
 Reference (optional) = If a reference is available, you can give here the path to the fasta file.
-                       The assembly will still be de novo, but references of the same genus can be used as a guide to resolve 
-                       duplicated regions in the plant mitochondria or the inverted repeat in the chloroplast. 
+                       The assembly will still be de novo, but references of the same genus can be used as a guide to resolve
+                       duplicated regions in the plant mitochondria or the inverted repeat in the chloroplast.
                        References from different genus haven\'t beeen tested yet.
-Variance detection   = If you select yes, you should also have a reference sequence (previous line). It will create a vcf file                
+Variance detection   = If you select yes, you should also have a reference sequence (previous line). It will create a vcf file
                        with all the variances compared to the give reference (yes/no)
 Chloroplast sequence = The path to the file that contains the chloroplast sequence (Only for mito_plant mode).
                        You have to assemble the chloroplast before you assemble the mitochondria of plants!
@@ -173,22 +206,22 @@ Store Hash           = If you want several runs on one dataset, you can store th
 
 Heteroplasmy:
 -----------------------
-MAF                  = (0.007-0.49) Minor Allele Frequency: If you want to detect heteroplasmy, first assemble the genome without this option. Then give the resulting                         
-                       sequence as a reference and as a seed input. And give the minimum minor allele frequency for this option 
+MAF                  = (0.007-0.49) Minor Allele Frequency: If you want to detect heteroplasmy, first assemble the genome without this option. Then give the resulting
+                       sequence as a reference and as a seed input. And give the minimum minor allele frequency for this option
                        (0.01 will detect heteroplasmy of >1%)
-HP exclude list      = Option not yet available  
+HP exclude list      = Option not yet available
 PCR-free             = (yes/no) If you have a PCR-free library write yes
 
 Optional:
 -----------------------
-Insert size auto     = (yes/no) This will finetune your insert size automatically (Default: yes)                               
-Use Quality Scores   = It will take in account the quality scores, only use this when reads have low quality, like with the    
+Insert size auto     = (yes/no) This will finetune your insert size automatically (Default: yes)
+Use Quality Scores   = It will take in account the quality scores, only use this when reads have low quality, like with the
                        300 bp reads of Illumina (yes/no)
 Output path          = You can change the directory where all the output files wil be stored.)" > ./github/NOVOplasty/$i\_config.txt
 
-		
+
 		# all things are in config file
-		perl ./github/NOVOplasty/NOVOPlasty4.3.1.pl -c ./github/NOVOplasty/$i\_config.txt	
+		perl ./github/NOVOplasty/NOVOPlasty4.3.1.pl -c ./github/NOVOplasty/$i\_config.txt
 done
 
 }
@@ -196,30 +229,56 @@ done
 
 function mitfising() {
 
-for i in $NAZWY;
-do
+	for i in $NAZWY;
+	do
 
-		# cleaning data
-		# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
-		fastp -i $wejscie$i.fastq.gz -o ./cleaned/$i.Out.fasta $THREADf -V
+		if [[ $( ls ./cleaned/ | grep -c $i ) != 2 ]];
+		then
+			# cleaning data
+			# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
+			fastp -i $wejscie$i.fastq.gz -o ./cleaned/$i.Out.fasta $THREADf -V
+		fi
 
+
+		if [[ $( ls ./downsampling/ | grep -c $i.downsam_ ) != 0 ]];
+		then
+			procenty=$( ls ./downsampling/ | grep $i.downsam_ | awk -F "." '{print $2}' | awk -F "_" '{print $2}' )
+			echo "there allready are downsampled files from $i to $procenty %"
+			echo "do you want to use existing one or create new one(Existing/New)"
+			read CCC
+			if [[ $CCC = E ]];
+			then
+				echo "what percent ($procenty)"
+				read XXX
+				echo $XXX
+			elif [[ $CCC = N ]];
+			then
+				DOWN=Start
+			fi
+		else
+			DOWN=Start
+		fi
+
+		if [[ $DOWN = Start ]];
+		then
 		# chcecking size of the file for downsapling
-		XXX=$( seqkit stats ./cleaned/$i.Out.fasta $THREADs | awk -v dolari="$i" '$1~"./cleaned/"dolari".Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 14000000/$1*100}' )
+		XXX=$( seqkit stats ./cleaned/$i.Out.fasta $THREADs | awk -v dolari="$i" '$1~"./cleaned/"dolari".Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 7000000/$1*100}' )
 		echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
 		echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
 		read XXX
 		#XXX=9 #${XXX%.*}
 		echo "We will downsaple to $XXX % of the original"
-		
+
 		# downsampling i packing
 		# -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
-		./github/MITObim/misc_scripts/downsample.py -s $XXX -r ./cleaned/$i.Out.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastaq.gz
+		python2 ./github/MITObim/misc_scripts/downsample.py -s $XXX -r ./cleaned/$i.Out.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastq.gz
+		fi
 
 		# MITOfinder looking for mitRNA
 		# -j process name(internal ID), -s input file single end, -r reference sequence, -o which genetic code to use(5-Invertebrate(bezkregowce))
-		mitofinder -j $i.$XXX -s ./downsampling/$i.downsam_$XXX.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
+		python2 mitofinder -j $i.$XXX -s ./downsampling/$i.downsam_$XXX.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
 
-done
+	done
 }
 
 
@@ -237,45 +296,45 @@ do
 		exit 0
 		;;
 	-Z)
-		#echo "installing programs"
+		echo "installing programs"
 		programy
 		exit 0
 		;;
 	-i)
-		#echo "input path to folder"
+		echo "input path to folder"
 		wejscie=("$2")
 		shift
 		shift
 		;;
 	-p)
-		#echo "paired ends"
+		echo "paired ends"
 		PAROWALNOSC="$2"
 		shift
 		shift
 		;;
 	-m)
-		#echo "reference for MITOfinder"
+		echo "reference for MITOfinder"
 		REFERENCE_M="$2"
-		dana= grep -c LOCUS $REFERENCE_M
+		dana=$( grep -c LOCUS $REFERENCE_M )
 		echo $dana
 		if [ $dana != 1 ]
 		then
 			echo "wrong file format for reference file for MITOfinder should be GenBank format"
 			exit 3
 		else
-			echo 
-		fi	
+			echo
+		fi
 		shift
 		shift
 		;;
 	-n)
-		#echo "reference for NOVOPlasty"
+		echo "reference for NOVOPlasty"
 		REFERENCE_N="$2"
-		dana= grep -c ">" $REFERENCE_N
-		echo $dana
+		dana=$( grep -c ">" $REFERENCE_N )
+		#echo $dana
 		if [ $dana != 1 ]
 		then
-			echo "wrong file format for reference file for NOVOplasty should be fasta format"
+			echo "wrong file format for reference file for NOVOPlasty should be fasta format"
 			exit 3
 		else
 			echo
@@ -284,48 +343,43 @@ do
 		shift
 		;;
 	-t)
-		#echo "thread used"
+		echo "thread used $2"
 		THREADf="-w $2"
 		THREADs="-j $2"
 		shift
 		shift
 		;;
 	-O)
-		#echo "organism"
+		echo "organism"
 		ORGANISM="$2"
 		shift
 		shift
 		;;
-	-r)
-		#amount of RAM
-		RAMM="$2"
-		shift
-		shift
-		;;
 	-B)
-		#echo "Both programs are running"
+		echo "Both programs are running"
 		alfa=B
+		# mitfi
+		# novpla
 		shift
 		;;
 	-M)
-		#echo "only MITOfinder is running"
+		echo "only MITOfinder is running"
 		alfa=M
+		# mitfi
 		shift
 		;;
 
 	-N)
-		#echo "only NOVOPlasty is running"
+		echo "only NOVOPlasty is running"
 		alfa=N
+		# novpla
 		shift
-		;;	
+		;;
 
 
-		
+
 	esac
 done
-
-mkdir ./cleaned
-mkdir ./downsampling
 
 if [ $PAROWALNOSC = T ]
 then
@@ -350,13 +404,13 @@ then
 elif [ $PAROWALNOSC = F ]
 then
 	# reads names of every set of input data
-	NAZWY=$(ls $wejscie |awk '$0 ~ ".fastq.gz" {print $0}' |awk -F "." '$2 !~ "1" && $2 !~ "2" '| awk -F "." '{print $1}')
+	NAZWY=$(ls |awk '$0 ~ ".fastq.gz" {print $0}' |awk -F "." '$2 !~ "1" && $2 !~ "2" '| awk -F "." '{print $1}')
 	echo $NAZWY
-		
+
 		if [ $alfa == B ];
 		then
 			mitfising
-		
+
 		elif [ $alfa == M ];
 		then
 			mitfising
@@ -364,5 +418,5 @@ then
 			echo "program not chosen"
 		fi
 fi
-exit 1
 
+exit 1
