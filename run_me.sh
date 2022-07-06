@@ -1,21 +1,20 @@
 #!/bin/bash
 
-# installing every important program(temporary version)
-
 usage() {
 	cat <<EOF
 Options
-	-h	this help
-	-Z	instalation of all neded programs, nessesery github repositories are unpacked to new folder called 'gihub'
-	-B	run both subprograms, in case of '-p F' only runs Mitofinder path
-	-i	input path to folder with every file
-	-p	do read are paired, deafult='T'
-	-O	type of organism genetic code chceck 'MitoFinder -h' for all options
-	-M	run mitofinder path
-	-m	full path to reference file for mitofinder(genebank format only)
-	-t	amount of threads programs in mitofinder path will gonna use
-	-N	run Novoplasty path, path not used in '-p F'(novoplasty doesn't support single ends)
-	-n	full path to reference file for novoplasy
+	-h this help
+	-Z instalation of all neded programs, nessesery github repositories are unpacked to new folder called 'gihub'
+	-i input path to folder with every file
+	-p do read are paired, deafult='T'
+	-A run all available subprograms
+	-M run MitoFinder path
+	-m full path to reference file for MitoFinder(genebank format)
+	-O type of organism genetic code chceck 'MitoFinder -h' for all options
+	-N run NOVOplasty path
+	-n full path to reference file for NOVOplasy(fasta format)
+	-B run MITObim path
+	-b full path to reference file for MITObim
 
 EOF
 
@@ -30,6 +29,8 @@ function programy() {
   eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 	brew install seqkit
 	sudo apt-get install --assume-yes fastp
+	sudo apt-get install --assume-yes libidn11
+	sudo apt-get install --assume-yes docker.io
 	sudo apt-get install --assume-yes perl
 	sudo apt-get install --assume-yes python-pip python3 python3-pip
 	sudo apt-get install --assume-yes cmake
@@ -55,68 +56,131 @@ function programy() {
 
 }
 
+function clean_sing() {
 
-function mitfi() {
+  if [[ $( ls ./$i/cleaned/ | grep -c $i ) != 2 ]];
+	then
+		# cleaning data
+		# -i input, -o output, -w amount of used threads,  -V log info every milion bases
+		fastp -i $wejscie$i.fastq.gz -o ./cleaned/$i.Out.fastq.gz $THREADf -V
+	fi
+}
 
-	for i in $NAZWY;
-	do
+function clean_pair() {
 
-		if [[ $( ls ./cleaned/ | grep -c $i ) != 2 ]];
-		then
-			# cleaning data
-			# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
-			fastp -i $wejscie$i.1.fastq.gz -I $wejscie$i.2.fastq.gz  -o ./cleaned/$i.Out1.fastq.gz -O ./cleaned/$i.Out2.fastq.gz $THREADf -V
-		fi
 
-		if [[ $( ls ./downsampling/ | grep -c $i.down_pair ) = 2 ]];
-		then
-			procenty=$( ls ./downsampling/ | grep $i.downsam_ | awk -F "." '{print $2}' | awk -F "_" '{print $2}' )
-			echo "there allready are downsampled files from $i to $procenty %"
-			echo "do you want to use existing one or create new one(Existing/New)"
-			read CCC
-			if [[ $CCC = E ]];
-			then
-				echo "what percent ($procenty)"
-				read XXX
-				echo $XXX
-			elif [[ $CCC = N ]];
-			then
-				DOWN=Start
-			fi
-		else
-			DOWN=Start
-		fi
 
-		if [[ $DOWN = Start ]];
-		then
-			# chcecking size of the file for downsapling
-			date +%T
-			XXX=$( seqkit stats ./cleaned/$i.Out1.fastq.gz $THREADs | awk -v dolari="$i" '$1~"./cleaned/"dolari".Out1.fastq.gz" {print $4}' | sed 's/,//g' | awk '{print 7000000/$1*100}' )
-			echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
-			echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
-			read XXX
-			#XXX=9 #${XXX%.*}
-			echo "We will downsaple to $XXX % of the original"
+  if [[ $( ls ./$i/cleaned/ | grep -c $i ) != 2 ]];
+	then
+		# cleaning data
+		# -i input1, -I input2, -o output1, -O output2, -w amount of used threads,  -V log info every milion bases
+		fastp -i $wejscie$i.1.fastq.gz -I $wejscie$i.2.fastq.gz  -o ./cleaned/$i.Out1.fastq.gz -O ./cleaned/$i.Out2.fastq.gz $THREADf -V
+	fi
+}
 
-			# downsampling i packing
-			# -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
-			python2 ./github/MITObim/misc_scripts/downsample.py -s $XXX --interleave -r ./cleaned/$i.Out1.fastq.gz -r ./cleaned/$i.Out2.fastq.gz | gzip > ./downsampling/$i.downsam_$XXX.fastq.gz
+function downsam_s2s() {
+  if [[ $( ls ./downsampling/ | grep -c $i.downsam_ ) != 0 ]];
+  then
+    procenty=$( ls ./downsampling/ | grep $i.downsam_ | awk -F "." '{print $2}' | awk -F "_" '{print $2}' )
+    echo "there allready are downsampled files from $i to $procenty %"
+    echo "do you want to use existing one or create new one(Existing/New)"
+    read CCC
+    if [[ $CCC = E ]];
+    then
+      echo "what percent ($procenty)"
+      read XXX
+      echo $XXX
+    elif [[ $CCC = N ]];
+    then
+      DOWN=Start
+    fi
+  else
+    DOWN=Start
+  fi
 
-			# deinterlaving file
-			# in= input file(interlaved), out1= i out2= out files(seperated paired ends)
-			reformat.sh int=t in=./downsampling/$i.downsam_$XXX.fastq.gz out1=./downsampling/$i.down_pair$XXX.1.fastq.gz out2=./downsampling/$i.down_pair$XXX.2.fastq.gz overwrite=true
-		fi
+  if [[ $DOWN = Start ]];
+  then
+    # chcecking size of the file for downsapling
+    XXX=$( seqkit stats ./cleaned/$i.Out.fasta $THREADs | awk -v dolari="$i" '$1~"./cleaned/"dolari".Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 7000000/$1*100}' )
+    echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
+    echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
+    read XXX
+    #XXX=9 #${XXX%.*}
+    echo "We will downsaple to $XXX % of the original"
 
-		# MITOfinder looking for mitRNA
-		# -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which genetic code to use(5-Invertebrate(bezkregowce))
-		python2 ./github/MitoFinder/mitofinder -j $i.$XXX -1 ./downsampling/$i.down_pair$XXX.1.fastq.gz -2 ./downsampling/$i.down_pair$XXX.2.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
+    # downsampling i packing
+    # -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
+    python2 ./github/MITObim/misc_scripts/downsample.py -s $XXX -r ./cleaned/$i.Out.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastq.gz
+  fi
+}
 
-done
+function downsam_p2p() {
 
+  # input: 2 cleaned files form ilumina; output: 2 downsapled files;
+  # if there are already downsampled files function will ask user if they want to use existing ones or create new ones,
+
+  if [[ $( ls ./$i/downsampling/ | grep -c $i.down_pair ) = 2 ]];
+  then
+    procenty=$( ls ./$i/downsampling/ | grep $i.downsam_ | awk -F "." '{print $2}' | awk -F "_" '{print $2}' )
+    echo "there allready are downsampled files from $i to $procenty %"
+    echo "do you want to use existing one or create new one(Existing/New)"
+    read CCC
+    if [[ $CCC = E ]];
+    then
+      echo "what percent ($procenty)"
+      read XXX
+      echo $XXX
+    elif [[ $CCC = N ]];
+    then
+      DOWN=Start
+    fi
+  else
+    DOWN=Start
+  fi
+
+  if [[ $DOWN = Start ]];
+  then
+    # chcecking size of the file for downsapling
+    date +%T
+    XXX=$( seqkit stats ./$i/cleaned/$i.Out1.fastq.gz $THREADs | awk -v dolari="$i" '$1~"./"dolari"/cleaned/"dolari".Out1.fastq.gz" {print $4}' | sed 's/,//g' | awk '{print 7000000/$1*100}' )
+    echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
+    echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
+    read XXX
+    #XXX=9 #${XXX%.*}
+    echo "We will downsaple to $XXX % of the original"
+
+    # downsampling i packing
+    # -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
+    python2 ./github/MITObim/misc_scripts/downsample.py -s $XXX --interleave -r ./$i/cleaned/$i.Out1.fastq.gz -r ./$i/cleaned/$i.Out2.fastq.gz | gzip > ./$i/downsampling/$i.downsam_$XXX.fastq.gz
+
+    # deinterlaving file
+    # in= input file(interlaved), out1= and out2= out files(seperated paired ends)
+    reformat.sh int=t in=./$i/downsampling/$i.downsam_$XXX.fastq.gz out1=./$i/downsampling/$i.down_pair$XXX.1.fastq.gz out2=./$i/downsampling/$i.down_pair$XXX.2.fastq.gz overwrite=true
+  fi
+}
+
+function interlave() {
+
+	#interlave
+	reformat.sh in1=./$i/cleaned/$i.Out1.fastq.gz in2=./$i/cleaned/$i.Out2.fastq.gz out=./$i/cleaned/$i.Out_inter.fastq.gz overwrite=true
 }
 
 
-function novpla () {
+function mitfi_sing() {
+
+  # MITOfinder looking for mitRNA
+  # -j process name(internal ID), -s input file single end, -r reference sequence, -o which genetic code to use(5-Invertebrate(bezkregowce))
+  python2 mitofinder -j $i.$XXX -s ./downsampling/$i.downsam_$XXX.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
+}
+
+function mitfi_pair() {
+
+  # MITOfinder looking for mitRNA
+  # -j process name(internal ID), -1 i -2 input files pair end(-s allows for single end), -r reference sequence, -o which genetic code to use(5-Invertebrate(bezkregowce))
+  python2 ./github/MitoFinder/mitofinder -j $i.$XXX -1 ./downsampling/$i.down_pair$XXX.1.fastq.gz -2 ./downsampling/$i.down_pair$XXX.2.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
+}
+
+function novpla() {
 
 	for i in $NAZWY;
 	do
@@ -160,7 +224,7 @@ Optional:
 -----------------------
 Insert size auto      = yes
 Use Quality Scores    = no
-Output path           =
+Output path           = $p/$i/
 
 
 Project:
@@ -226,65 +290,25 @@ done
 
 }
 
+function mitobim_sing() {
 
-function mitfising() {
-
-	for i in $NAZWY;
-	do
-
-		if [[ $( ls ./cleaned/ | grep -c $i ) != 2 ]];
-		then
-			# cleaning data
-			# -i input1, -I input2, -o output1, -O output2, -V log info every milion bases, -w amount of used threads
-			fastp -i $wejscie$i.fastq.gz -o ./cleaned/$i.Out.fasta $THREADf -V
-		fi
-
-
-		if [[ $( ls ./downsampling/ | grep -c $i.downsam_ ) != 0 ]];
-		then
-			procenty=$( ls ./downsampling/ | grep $i.downsam_ | awk -F "." '{print $2}' | awk -F "_" '{print $2}' )
-			echo "there allready are downsampled files from $i to $procenty %"
-			echo "do you want to use existing one or create new one(Existing/New)"
-			read CCC
-			if [[ $CCC = E ]];
-			then
-				echo "what percent ($procenty)"
-				read XXX
-				echo $XXX
-			elif [[ $CCC = N ]];
-			then
-				DOWN=Start
-			fi
-		else
-			DOWN=Start
-		fi
-
-		if [[ $DOWN = Start ]];
-		then
-		# chcecking size of the file for downsapling
-		XXX=$( seqkit stats ./cleaned/$i.Out.fasta $THREADs | awk -v dolari="$i" '$1~"./cleaned/"dolari".Out1.fasta" {print $4}' | sed 's/,//g' | awk '{print 7000000/$1*100}' )
-		echo $XXX "this is percent of reads that is closest to the highest for mitofinder, we suggest using " $(printf '%.0f' $XXX) " it is however possible to use lower value(int only)"
-		echo "To what percent you want to dowsample(recomended $(printf '%.0f' $XXX)): "
-		read XXX
-		#XXX=9 #${XXX%.*}
-		echo "We will downsaple to $XXX % of the original"
-
-		# downsampling i packing
-		# -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
-		python2 ./github/MITObim/misc_scripts/downsample.py -s $XXX -r ./cleaned/$i.Out.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastq.gz
-		fi
-
-		# MITOfinder looking for mitRNA
-		# -j process name(internal ID), -s input file single end, -r reference sequence, -o which genetic code to use(5-Invertebrate(bezkregowce))
-		python2 mitofinder -j $i.$XXX -s ./downsampling/$i.downsam_$XXX.fastq.gz -r $REFERENCE_M -o $ORGANISM --override
-
-	done
+	# starts a docker(if docker doesn't exist ona a computer crates it) then run MITObim, after mitobim end
+	sudo docker run -it -v $p/$i/cleaned/:/home/data/input/ -v $p/$i/output/:/home/data/output/  chrishah/mitobim /bin/bash
+	/home/src/scripts/MITObim.pl -sample $i -ref $i -readpool /home/data/input/$i.Out.fastq.gz --quick /home/data/input/$REFERENCE_B -end 10 --clean
+	exit
 }
 
+function mitobim_pair() {
 
+	# starts a docker(if docker doesn't exist ona a computer crates it) then run MITObim, after mitobim end
+	sudo docker run -it -v $p/$i/cleaned/:/home/data/input/ -v $p/$i/output/:/home/data/output/  chrishah/mitobim /bin/bash
+	/home/src/scripts/MITObim.pl --pair -sample $i -ref $i -readpool /home/data/input/$i.Out_inter.fastq.gz --quick /home/data/input/$REFERENCE_B -end 10 --clean
+	exit
+}
 
 alfa=alfa
 PAROWALNOSC=T
+p=$(pwd)
 
 # jezeli nie ma argumentu(jezeli lista argumentow ma dlugosc 0) wyswietl manual
 while test $# -gt 0;
@@ -295,28 +319,32 @@ do
 		usage
 		exit 0
 		;;
+
 	-Z)
 		echo "installing programs"
 		programy
 		exit 0
 		;;
+
 	-i)
 		echo "input path to folder"
 		wejscie=("$2")
 		shift
 		shift
 		;;
+
 	-p)
 		echo "paired ends"
 		PAROWALNOSC="$2"
 		shift
 		shift
 		;;
+
 	-m)
 		echo "reference for MITOfinder"
 		REFERENCE_M="$2"
 		dana=$( grep -c LOCUS $REFERENCE_M )
-		echo $dana
+		#echo $dana
 		if [ $dana != 1 ]
 		then
 			echo "wrong file format for reference file for MITOfinder should be GenBank format"
@@ -327,6 +355,7 @@ do
 		shift
 		shift
 		;;
+
 	-n)
 		echo "reference for NOVOPlasty"
 		REFERENCE_N="$2"
@@ -342,6 +371,23 @@ do
 		shift
 		shift
 		;;
+
+	-b)
+		echo "reference for MITObim"
+		REFERENCE_B="$2"
+		dana=$( grep -c ">" $REFERENCE_B )
+		#echo $dana
+		if [ $dana != 1 ]
+		then
+			echo "wrong file format for reference file for MITObim should be fasta format"
+			exit 3
+		else
+			echo
+		fi
+		shift
+		shift
+			;;
+
 	-t)
 		echo "thread used $2"
 		THREADf="-w $2"
@@ -349,34 +395,41 @@ do
 		shift
 		shift
 		;;
+
 	-O)
 		echo "organism"
 		ORGANISM="$2"
 		shift
 		shift
 		;;
-	-B)
-		echo "Both programs are running"
-		alfa=B
+
+	-A)
+		echo "All programs are running"
+		alfa=A
 		# mitfi
 		# novpla
 		shift
 		;;
+
+	-B)
+		echo "MITObim is running"
+		alfa=#!/usr/bin/env bash
+		shift
+		;;
+
 	-M)
-		echo "only MITOfinder is running"
+		echo "MITOfinder is running"
 		alfa=M
 		# mitfi
 		shift
 		;;
 
 	-N)
-		echo "only NOVOPlasty is running"
+		echo "NOVOPlasty is running"
 		alfa=N
 		# novpla
 		shift
 		;;
-
-
 
 	esac
 done
@@ -387,19 +440,33 @@ then
 	NAZWY=$(ls $wejscie |awk '$0 ~ ".1.fastq.gz" {print $0}' | awk -F "." '{print $1}')
 	echo $NAZWY
 
-		if [ $alfa == B ];
+	for i in $NAZWY;
+	do
+
+		if [ $alfa == A ];
 		then
-			mitfi
+			clean_pair
+			downsam_p2p
+			mitfi_pair
 			novpla
+			interlave
+			mitobim_pair
 		elif [ $alfa == M ];
 		then
-			mitfi
+			clean_pair
+			downsam_p2p
+			mitfi_pair
 		elif [ $alfa == N ];
 		then
 			novpla
+		elif [ $alfa == B ];
+		then
+			interlave
+			mitobim_pair
 		else
 			echo "program not chosen"
 		fi
+	done
 
 elif [ $PAROWALNOSC = F ]
 then
@@ -407,16 +474,28 @@ then
 	NAZWY=$(ls |awk '$0 ~ ".fastq.gz" {print $0}' |awk -F "." '$2 !~ "1" && $2 !~ "2" '| awk -F "." '{print $1}')
 	echo $NAZWY
 
-		if [ $alfa == B ];
-		then
-			mitfising
+	for i in $NAZWY;
+	do
 
+		if [ $alfa == A ];
+		then
+			clean_sing
+			downsam_s2s
+			mitfi_sing
+			mitobim_sing
 		elif [ $alfa == M ];
 		then
-			mitfising
+			clean_sing
+			downsam_s2s
+			mitfi_sing
+		elif [ $alfa == B ];
+		then
+			mitobim_sing
 		else
 			echo "program not chosen"
 		fi
+	done
+
 fi
 
 exit 1
