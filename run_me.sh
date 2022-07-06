@@ -39,9 +39,6 @@ function programy() {
 	sudo apt-get install --assume-yes bbmap
 	sudo apt-get install automake autoconf
 
-	mkdir ./cleaned
-	mkdir ./downsampling
-
 	mkdir ./github
 	cd ./github
 
@@ -443,6 +440,10 @@ then
 	for i in $NAZWY;
 	do
 
+		mkdir $i
+		mkdir ./$i/downsampling
+		mkdir ./$i/cleaned
+
 		if [ $alfa == A ];
 		then
 			clean_pair
@@ -476,6 +477,10 @@ then
 
 	for i in $NAZWY;
 	do
+
+		mkdir $i
+		mkdir ./$i/downsampling
+		mkdir ./$i/cleaned
 
 		if [ $alfa == A ];
 		then
