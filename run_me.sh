@@ -296,6 +296,8 @@ function mitobim_sing() {
 
 	sudo docker exec $kontener /home/src/scripts/MITObim.pl -sample $i -ref $i -readpool /home/data/input/$i.Out.fastq.gz --quick /home/data/reference/$REFERENCE_B -end 10 --clean
 
+	cp -r ./iteration* ./data/output/
+
 	sudo docker stop $kontener
 	sudo docker rm $kontener
 }
@@ -307,7 +309,9 @@ function mitobim_pair() {
 
 	kontener=$( sudo docker ps | awk '$0 ~ "chrishah" {print $1}' )
 
-	sudo docker exec $kontener /home/src/scripts/MITObim.pl -sample $i -ref $i -readpool /home/data/input/$i.Out_inter.fastq.gz --quick /home/data/reference/$REFERENCE_B -end 10 --clean
+	sudo docker exec $kontener /home/src/scripts/MITObim.pl -sample $i -ref $i -readpool /home/data/input/$i.Out_inter.fastq.gz --quick /home/data/reference/$REFERENCE_B -end 10 --clean --redirect_tmp /home/data/output/
+
+	cp -r ./iteration* ./data/output/
 
 	sudo docker stop $kontener
 	sudo docker rm $kontener
@@ -458,11 +462,11 @@ then
 
 		if [ $alfa == A ];
 		then
-			clean_pair
-			downsam_p2p
-			mitfi_pair
-			novpla
-			interlave
+			#clean_pair
+			#downsam_p2p
+			#mitfi_pair
+			#novpla
+			#interlave
 			mitobim_pair
 		elif [ $alfa == M ];
 		then
