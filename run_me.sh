@@ -67,11 +67,11 @@ function clean_pair() {
 
 
 
-  if [[ $( ls ./$i/cleaned/ | grep -c $i ) != 2 ]];
+  if [[ $( ls ./$i/cleaned/ | grep -c $i.Out..f ) != 2 ]];
 	then
 		# cleaning data
 		# -i input1, -I input2, -o output1, -O output2, -w amount of used threads,  -V log info every milion bases
-		fastp -i $wejscie$i.1.fastq.gz -I $wejscie$i.2.fastq.gz  -o ./cleaned/$i.Out1.fastq.gz -O ./cleaned/$i.Out2.fastq.gz $THREADf -V
+		fastp -i $wejscie$i.1.fastq.gz -I $wejscie$i.2.fastq.gz  -o ./$i/cleaned/$i.Out1.fastq.gz -O ./$i/cleaned/$i.Out2.fastq.gz $THREADf -V
 	fi
 }
 
@@ -179,13 +179,10 @@ function mitfi_pair() {
 
 function novpla() {
 
-	for i in $NAZWY;
-	do
+	# NOVOplasty looking for mitRNA
+	# creating config file
 
-		# NOVOplasty looking for mitRNA
-		# creating config file
-
-		echo "Project:
+	echo "Project:
 -----------------------
 Project name          = $i
 Type                  = mito
@@ -278,12 +275,12 @@ Optional:
 Insert size auto     = (yes/no) This will finetune your insert size automatically (Default: yes)
 Use Quality Scores   = It will take in account the quality scores, only use this when reads have low quality, like with the
                        300 bp reads of Illumina (yes/no)
-Output path          = You can change the directory where all the output files wil be stored.)" > ./github/NOVOplasty/$i\_config.txt
+Output path          = You can change the directory where all the output files wil be stored.)" > ./$i/$i\_Nconfig.txt
 
 
-		# all things are in config file
-		perl ./github/NOVOplasty/NOVOPlasty4.3.1.pl -c ./github/NOVOplasty/$i\_config.txt
-done
+	# all things are in config file
+	perl ./github/NOVOplasty/NOVOPlasty4.3.1.pl -c ./$i/$i\_Nconfig.txt
+
 
 }
 
@@ -298,8 +295,8 @@ function mitobim_sing() {
 function mitobim_pair() {
 
 	# starts a docker(if docker doesn't exist ona a computer crates it) then run MITObim, after mitobim end
-	sudo docker run -it -v $p/$i/cleaned/:/home/data/input/ -v $p/$i/output/:/home/data/output/  chrishah/mitobim /bin/bash
-	/home/src/scripts/MITObim.pl --pair -sample $i -ref $i -readpool /home/data/input/$i.Out_inter.fastq.gz --quick /home/data/input/$REFERENCE_B -end 10 --clean
+	sudo docker run -it -v $p/$i/cleaned/:/home/data/input/ -v $p/$i/output/:/home/data/output/ -v $p/reference/:/home/data/reference/  chrishah/mitobim /bin/bash
+	/home/src/scripts/MITObim.pl --pair -sample $i -ref $i -readpool /home/data/input/$i.Out_inter.fastq.gz --quick /home/data/reference/$REFERENCE_B -end 10 --clean
 	exit
 }
 
@@ -443,6 +440,7 @@ then
 		mkdir $i
 		mkdir ./$i/downsampling
 		mkdir ./$i/cleaned
+		mkdir ./$i/output
 
 		if [ $alfa == A ];
 		then
