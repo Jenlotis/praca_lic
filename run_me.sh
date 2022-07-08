@@ -158,8 +158,11 @@ function downsam_p2p() {
 
 function interlave() {
 
-	#interlave
-	reformat.sh in1=./$i/cleaned/$i.Out1.fastq.gz in2=./$i/cleaned/$i.Out2.fastq.gz out=./$i/cleaned/$i.Out_inter.fastq.gz overwrite=true
+	if [[ $( ls ./$i/cleaned/ | grep -c $i.Out_inter ) != 1 ]];
+	then
+		#interlave
+		reformat.sh in1=./$i/cleaned/$i.Out1.fastq.gz in2=./$i/cleaned/$i.Out2.fastq.gz out=./$i/cleaned/$i.Out_inter.fastq.gz overwrite=true
+	fi
 }
 
 
@@ -287,17 +290,27 @@ Output path          = You can change the directory where all the output files w
 function mitobim_sing() {
 
 	# starts a docker(if docker doesn't exist ona a computer crates it) then run MITObim, after mitobim end
-	sudo docker run -it -v $p/$i/cleaned/:/home/data/input/ -v $p/$i/output/:/home/data/output/  chrishah/mitobim /bin/bash
-	/home/src/scripts/MITObim.pl -sample $i -ref $i -readpool /home/data/input/$i.Out.fastq.gz --quick /home/data/input/$REFERENCE_B -end 10 --clean
-	exit
+	sudo docker run -d -it -v $p/$i/cleaned/:/home/data/input/ -v $p/$i/output/:/home/data/output/ -v $p/reference/:/home/data/reference/  chrishah/mitobim /bin/bash
+
+	kontener=$( sudo docker ps | awk '$0 ~ "chrishah" {print $1}' )
+
+	sudo docker exec $kontener /home/src/scripts/MITObim.pl -sample $i -ref $i -readpool /home/data/input/$i.Out.fastq.gz --quick /home/data/reference/$REFERENCE_B -end 10 --clean
+
+	sudo docker stop $kontener
+	sudo docker rm $kontener
 }
 
 function mitobim_pair() {
 
 	# starts a docker(if docker doesn't exist ona a computer crates it) then run MITObim, after mitobim end
-	sudo docker run -it -v $p/$i/cleaned/:/home/data/input/ -v $p/$i/output/:/home/data/output/ -v $p/reference/:/home/data/reference/  chrishah/mitobim /bin/bash
-	/home/src/scripts/MITObim.pl --pair -sample $i -ref $i -readpool /home/data/input/$i.Out_inter.fastq.gz --quick /home/data/reference/$REFERENCE_B -end 10 --clean
-	exit
+	sudo docker run -d -it -v $p/$i/cleaned/:/home/data/input/ -v $p/$i/output/:/home/data/output/ -v $p/reference/:/home/data/reference/  chrishah/mitobim /bin/bash
+
+	kontener=$( sudo docker ps | awk '$0 ~ "chrishah" {print $1}' )
+
+	sudo docker exec $kontener /home/src/scripts/MITObim.pl -sample $i -ref $i -readpool /home/data/input/$i.Out_inter.fastq.gz --quick /home/data/reference/$REFERENCE_B -end 10 --clean
+
+	sudo docker stop $kontener
+	sudo docker rm $kontener
 }
 
 alfa=alfa
@@ -368,7 +381,7 @@ do
 
 	-b)
 		echo "reference for MITObim"
-		REFERENCE_B="$2"
+		REFERENCE_B=$2
 		dana=$( grep -c ">" $REFERENCE_B )
 		#echo $dana
 		if [ $dana != 1 ]
@@ -377,6 +390,7 @@ do
 			exit 3
 		else
 			echo
+			REFERENCE_B=$( echo $REFERENCE_B | awk -F "/" '{print $3}')
 		fi
 		shift
 		shift
