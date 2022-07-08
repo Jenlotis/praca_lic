@@ -462,11 +462,11 @@ then
 
 		if [ $alfa == A ];
 		then
-			#clean_pair
-			#downsam_p2p
-			#mitfi_pair
-			#novpla
-			#interlave
+			clean_pair
+			downsam_p2p
+			mitfi_pair
+			novpla
+			interlave
 			mitobim_pair
 		elif [ $alfa == M ];
 		then
