@@ -425,7 +425,7 @@ do
 
 	-B)
 		echo "MITObim is running"
-		alfa=#!/usr/bin/env bash
+		alfa=B
 		shift
 		;;
 
