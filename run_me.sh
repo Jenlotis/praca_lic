@@ -497,6 +497,7 @@ then
 		mkdir $i
 		mkdir ./$i/downsampling
 		mkdir ./$i/cleaned
+		mkdir ./$i/output
 
 		if [ $alfa == A ];
 		then
