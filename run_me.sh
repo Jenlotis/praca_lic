@@ -116,7 +116,7 @@ function downsam_p2p() {
   # input: 2 cleaned files form ilumina; output: 2 downsapled files;
   # if there are already downsampled files function will ask user if they want to use existing ones or create new ones,
 
-  if [[ $( ls ./$i/downsampling/ | grep -c $i.down_pair ) = 2 ]];
+  if [[ $( ls ./$i/downsampling/ | grep -c $i.down_pair ) >= 2 ]];
   then
     procenty=$( ls ./$i/downsampling/ | grep $i.downsam_ | awk -F "." '{print $2}' | awk -F "_" '{print $2}' )
     echo "there allready are downsampled files from $i to $procenty %"
