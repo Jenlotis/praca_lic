@@ -55,7 +55,7 @@ function programy() {
 
 function clean_sing() {
 
-  if [[ $( ls ./$i/cleaned/ | grep -c $i ) != 2 ]];
+  if [[ $( ls ./$i/cleaned/ | grep -c $i ) != 1 ]];
 	then
 		# cleaning data
 		# -i input, -o output, -w amount of used threads,  -V log info every milion bases
