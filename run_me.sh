@@ -21,7 +21,9 @@ EOF
 }
 
 function programy() {
-
+	
+	# installs every necessary program(or update them if allready installed) 
+	
 	sudo apt-get install --assume-yes fastqc
 	sudo apt-get install --assume-yes curl
 	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -55,9 +57,10 @@ function programy() {
 
 function clean_sing() {
 
+  # chcecking existance of cleaned files for single end data and cleaning them if they don't exist
+
   if [[ $( ls ./$i/cleaned/ | grep -c $i ) != 1 ]];
 	then
-		# cleaning data
 		# -i input, -o output, -w amount of used threads,  -V log info every milion bases
 		fastp -i $wejscie$i.fastq.gz -o ./cleaned/$i.Out.fastq.gz $THREADf -V
 	fi
@@ -65,17 +68,19 @@ function clean_sing() {
 
 function clean_pair() {
 
-
+  # chcecking existance of cleaned files for paired end data and cleaning them if they don't exist
 
   if [[ $( ls ./$i/cleaned/ | grep -c $i.Out..f ) != 2 ]];
 	then
-		# cleaning data
 		# -i input1, -I input2, -o output1, -O output2, -w amount of used threads,  -V log info every milion bases
 		fastp -i $wejscie$i.1.fastq.gz -I $wejscie$i.2.fastq.gz  -o ./$i/cleaned/$i.Out1.fastq.gz -O ./$i/cleaned/$i.Out2.fastq.gz $THREADf -V
 	fi
 }
 
 function downsam_s2s() {
+
+  # downsampling data if: there is no donsampled files/user want to create new one
+
   if [[ $( ls ./downsampling/ | grep -c $i.downsam_ ) != 0 ]];
   then
     procenty=$( ls ./downsampling/ | grep $i.downsam_ | awk -F "." '{print $2}' | awk -F "_" '{print $2}' )
@@ -105,7 +110,7 @@ function downsam_s2s() {
     #XXX=9 #${XXX%.*}
     echo "We will downsaple to $XXX % of the original"
 
-    # downsampling i packing
+    # downsampling and packing
     # -s percent of the original , --interleave creates one file with paried ends, -r input files, \ gzip > packing and saving to file
     python2 ./github/MITObim/misc_scripts/downsample.py -s $XXX -r ./cleaned/$i.Out.fasta | gzip > ./downsampling/$i.downsam_$XXX.fastq.gz
   fi
